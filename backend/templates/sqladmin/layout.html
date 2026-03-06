@@ -62,43 +62,68 @@
     document.addEventListener("DOMContentLoaded", function () {
         // 1. Универсальная функция замены текста (надежный fallback перевода)
         const translations = {
-            'New': 'Создать',
+            'New': 'Новый',
             'Export': 'Экспорт',
             'Save': 'Сохранить',
             'Cancel': 'Отмена',
-            'Save and add another': 'Сохранить и добавить ещё',
-            'Save and continue editing': 'Сохранить и продолжить',
+            'Save and add another': 'Сохранить и добавить ещё один',
+            'Save and continue editing': 'Сохранить и продолжить редактирование',
             'Search': 'Поиск',
             'Actions': 'Действия',
             'Delete': 'Удалить',
-            'View': 'Смотреть',
-            'Edit': 'Изменить'
+            'View': 'Просмотр',
+            'Edit': 'Изменить',
+            'Delete selected items': 'Удалить выбранные элементы',
+            'Next': 'След.',
+            'Prev': 'Пред.',
+            'Apply': 'Применить'
         };
 
-        // Перевод кнопок btn (span, a, button)
-        const buttons = document.querySelectorAll('.btn, .dropdown-item, .nav-link-title, label, th');
-        buttons.forEach(btn => {
-            const text = btn.textContent.trim();
+        const partialTranslations = {
+            'New ': 'Новый ',
+            'Edit ': 'Изменить ',
+            'Show ': 'Показывать по ',
+            ' page': ' строк'
+        };
+
+        function translateElement(el) {
+            const text = el.textContent.trim();
+
+            // Точное совпадение
             if (translations[text]) {
-                // Если внутри есть иконки, заменяем только текстовые узлы
-                Array.from(btn.childNodes).forEach(node => {
+                Array.from(el.childNodes).forEach(node => {
                     if (node.nodeType === 3 && node.nodeValue.trim() === text) {
                         node.nodeValue = translations[text];
                     }
                 });
-            } else {
-                // Частичные совпадения (New Сотрудник -> Создать Сотрудник)
-                if (text.startsWith('New ')) {
-                    Array.from(btn.childNodes).forEach(node => {
-                        if (node.nodeType === 3 && node.nodeValue.trim().startsWith('New ')) {
-                            node.nodeValue = node.nodeValue.replace('New', 'Создать');
-                        }
-                    });
+                return;
+            }
+
+            // Частичное совпадение (например "New Сотрудник" или "Show 10 page")
+            let newText = text;
+            let replaced = false;
+
+            for (const [eng, rus] of Object.entries(partialTranslations)) {
+                if (newText.includes(eng)) {
+                    newText = newText.replace(eng, rus);
+                    replaced = true;
                 }
             }
-        });
 
-        // Перевод "Showing X to Y of Z items"
+            if (replaced) {
+                Array.from(el.childNodes).forEach(node => {
+                    if (node.nodeType === 3 && node.nodeValue.trim() === text) {
+                        node.nodeValue = newText;
+                    }
+                });
+            }
+        }
+
+        // Перевод кнопок, ссылок, заголовков и выпадающих списков
+        const selector = '.btn, .dropdown-item, .nav-link-title, label, th, .pagination .page-link, .modal-title, .dropdown-toggle';
+        document.querySelectorAll(selector).forEach(translateElement);
+
+        // Специальная обработка для текста пагинации "Showing X to Y of Z items"
         const paginationTexts = document.querySelectorAll('.text-muted');
         paginationTexts.forEach(el => {
             let t = el.textContent;
@@ -117,6 +142,18 @@
                 input.placeholder = 'Поиск...';
             }
         });
+
+        // Слушаем изменения в DOM для динамических элементов (например, модальных окон)
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === 1) {
+                        node.querySelectorAll(selector).forEach(translateElement);
+                    }
+                });
+            });
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
     });
 </script>
 
