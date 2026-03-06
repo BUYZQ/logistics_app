@@ -60,99 +60,124 @@
 {{ super() }}
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        // 1. Универсальная функция замены текста (надежный fallback перевода)
-        const translations = {
-            'New': 'Новый',
-            'Export': 'Экспорт',
-            'Save': 'Сохранить',
-            'Cancel': 'Отмена',
-            'Save and add another': 'Сохранить и добавить ещё один',
-            'Save and continue editing': 'Сохранить и продолжить редактирование',
-            'Search': 'Поиск',
-            'Actions': 'Действия',
-            'Delete': 'Удалить',
-            'View': 'Просмотр',
-            'Edit': 'Изменить',
-            'Delete selected items': 'Удалить выбранные элементы',
-            'Next': 'След.',
-            'Prev': 'Пред.',
-            'Apply': 'Применить'
-        };
+        console.log("SQLAdmin Russian Localization Script Active");
 
-        const partialTranslations = {
-            'New ': 'Новый ',
-            'Edit ': 'Изменить ',
-            'Show ': 'Показывать по ',
-            ' page': ' строк'
+        const translations = {
+            'new': 'Новый',
+            'export': 'Экспорт',
+            'save': 'Сохранить',
+            'cancel': 'Отмена',
+            'save and add another': 'Сохранить и добавить ещё',
+            'save and continue editing': 'Сохранить и продолжить',
+            'search': 'Поиск',
+            'actions': 'Действия',
+            'delete': 'Удалить',
+            'view': 'Просмотр',
+            'edit': 'Изменить',
+            'delete selected items': 'Удалить выбранные',
+            'apply': 'Применить',
+            'operator': 'Оператор',
+            'expeditor': 'Экспедитор',
+            'true': 'Да',
+            'false': 'Нет',
+            'show': 'Показать',
+            'page': 'строк'
         };
 
         function translateElement(el) {
-            const text = el.textContent.trim();
-
-            // Точное совпадение
-            if (translations[text]) {
-                Array.from(el.childNodes).forEach(node => {
-                    if (node.nodeType === 3 && node.nodeValue.trim() === text) {
-                        node.nodeValue = translations[text];
-                    }
-                });
-                return;
-            }
-
-            // Частичное совпадение (например "New Сотрудник" или "Show 10 page")
-            let newText = text;
-            let replaced = false;
-
-            for (const [eng, rus] of Object.entries(partialTranslations)) {
-                if (newText.includes(eng)) {
-                    newText = newText.replace(eng, rus);
-                    replaced = true;
+            // 1. Пагинация: убираем только текст, оставляем стрелки
+            if (el.classList.contains('page-link')) {
+                const lower = el.textContent.toLowerCase();
+                if (lower.includes('next') || lower.includes('prev') || lower.includes('след') || lower.includes('пред')) {
+                    Array.from(el.childNodes).forEach(node => {
+                        if (node.nodeType === 3) node.nodeValue = '';
+                    });
+                    return;
                 }
             }
 
-            if (replaced) {
-                Array.from(el.childNodes).forEach(node => {
-                    if (node.nodeType === 3 && node.nodeValue.trim() === text) {
-                        node.nodeValue = newText;
-                    }
-                });
+            // 2. Обход всех текстовых узлов (самый надежный способ)
+            const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+            let node;
+            while (node = walker.nextNode()) {
+                const originalValue = node.nodeValue;
+                const trimmedValue = originalValue.trim();
+                if (!trimmedValue) continue;
+
+                const lowerValue = trimmedValue.toLowerCase();
+
+                // Точное совпадение слова (регистронезависимо через словарь)
+                if (translations[lowerValue]) {
+                    node.nodeValue = originalValue.replace(trimmedValue, translations[lowerValue]);
+                    continue;
+                }
+
+                // Частичные совпадения (Новый, Показать, строк) с границами слов
+                let text = originalValue;
+                if (lowerValue.includes('new')) text = text.replace(/\bNew\b/i, 'Новый');
+                if (lowerValue.includes('edit')) text = text.replace(/\bEdit\b/i, 'Изменить');
+                if (lowerValue.includes('show')) text = text.replace(/\bShow\b/i, 'Показать');
+                if (lowerValue.includes('page')) text = text.replace(/\bpage\b/i, 'строк');
+                if (lowerValue.includes('operator')) text = text.replace(/\boperator\b/i, 'Оператор');
+                if (lowerValue.includes('expeditor')) text = text.replace(/\bexpeditor\b/i, 'Экспедитор');
+                if (lowerValue === 'true') text = 'Да';
+                if (lowerValue === 'false') text = 'Нет';
+
+                // Специфичный фикс для "Новый Сотрудник" -> "Новый сотрудник"
+                if (text.includes('Новый Сотрудник')) {
+                    text = text.replace('Сотрудник', 'сотрудник');
+                }
+
+                if (text !== originalValue) {
+                    node.nodeValue = text;
+                }
             }
         }
 
-        // Перевод кнопок, ссылок, заголовков и выпадающих списков
-        const selector = '.btn, .dropdown-item, .nav-link-title, label, th, .pagination .page-link, .modal-title, .dropdown-toggle';
-        document.querySelectorAll(selector).forEach(translateElement);
-
-        // Специальная обработка для текста пагинации "Showing X to Y of Z items"
-        const paginationTexts = document.querySelectorAll('.text-muted');
-        paginationTexts.forEach(el => {
-            let t = el.textContent;
-            if (t.includes('Showing') && t.includes('items')) {
-                t = t.replace('Showing', 'Показано с').replace('to', 'по').replace('of', 'из').replace('items', 'записей');
-                el.textContent = t;
-            } else if (t.includes('Showing 1 to 0 of 0 items')) {
-                el.textContent = 'Показано 0 записей';
-            }
-        });
-
-        // Перевод Placeholder'а в поле поиска
-        const searchInputs = document.querySelectorAll('input[name="search"]');
-        searchInputs.forEach(input => {
-            if (input.placeholder === 'Search') {
-                input.placeholder = 'Поиск...';
-            }
-        });
-
-        // Слушаем изменения в DOM для динамических элементов (например, модальных окон)
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                mutation.addedNodes.forEach((node) => {
-                    if (node.nodeType === 1) {
-                        node.querySelectorAll(selector).forEach(translateElement);
-                    }
-                });
+        const runTranslation = () => {
+            // 1. "Showing X to Y of Z items" - Только для конкретных контейнеров
+            document.querySelectorAll('.text-muted, .page-pretitle').forEach(el => {
+                let t = el.textContent;
+                if (t.toLowerCase().includes('showing') && t.toLowerCase().includes('items')) {
+                    t = t.replace(/showing/i, 'Показано с').replace(/to/i, 'по').replace(/of/i, 'из').replace(/items/i, 'записей');
+                    el.textContent = t;
+                }
             });
-        });
+
+            // 2. Максимальный охват (но без div/li, чтобы не схлопнуть DOM)
+            const selector = '.btn, .dropdown-item, .nav-link-title, label, th, td, .pagination .page-link, .modal-title, .dropdown-toggle, .page-pretitle, .page-title, .breadcrumb-item, a, span, button, strong, h1, h2, h3, option';
+            document.querySelectorAll(selector).forEach(translateElement);
+
+            // 3. Перевод значений (value) для кнопок-инпутов
+            document.querySelectorAll('input[type="submit"], input[type="button"]').forEach(input => {
+                const val = input.value.trim().toLowerCase();
+                if (translations[val]) {
+                    input.value = translations[val];
+                }
+            });
+
+            // 4. Скрываем лишние кнопки
+            document.querySelectorAll('input[type="submit"], button[type="submit"], .btn').forEach(btn => {
+                const txt = (btn.value || btn.textContent || "").toLowerCase();
+                if (txt.includes('another') || txt.includes('continue') || txt.includes('ещё') || txt.includes('продолжить')) {
+                    btn.classList.add('d-none'); // Tabler class
+                    btn.style.display = 'none';
+                }
+            });
+
+            // 5. Плейсхолдер поиска
+            document.querySelectorAll('input[name="search"]').forEach(input => {
+                if (input.placeholder && input.placeholder.toLowerCase() === 'search') {
+                    input.placeholder = 'Поиск...';
+                }
+            });
+        };
+
+        // Запускаем несколько раз для динамического контента
+        runTranslation();
+        [100, 300, 700, 1500, 3000].forEach(delay => setTimeout(runTranslation, delay));
+
+        const observer = new MutationObserver(runTranslation);
         observer.observe(document.body, { childList: true, subtree: true });
     });
 </script>
@@ -161,6 +186,18 @@
     /* Немного подправим ширину кнопок, чтобы русские слова влезали без переносов */
     .btn {
         white-space: nowrap;
+    }
+
+    /* Скрываем лишние кнопки сохранения, оставляем только основную */
+    input[name="_add_another"],
+    input[name="_continue_editing"],
+    input[name="_save_and_add_another"],
+    input[name="_save_and_continue"],
+    button[name="_add_another"],
+    button[name="_continue_editing"],
+    button[name="_save_and_add_another"],
+    button[name="_save_and_continue"] {
+        display: none !important;
     }
 </style>
 {% endblock %}

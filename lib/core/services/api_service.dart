@@ -5,7 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Базовый URL бэкенда. Меняйте на IP вашего сервера при деплое.
 /// Для Android-эмулятора: 10.0.2.2:8000
 /// Для реального устройства: IP компьютера в сети, например 192.168.1.100:8000
-const String _baseUrl = 'http://10.0.2.2:8000';
+/// Для Render: https://logistics-app-yjqp.onrender.com
+const String _baseUrl = 'https://logistics-app-yjqp.onrender.com';
+
 const String _tokenKey = 'auth_token';
 
 class ApiException implements Exception {

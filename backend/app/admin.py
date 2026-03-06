@@ -30,7 +30,7 @@ class AdminAuth(AuthenticationBackend):
 admin_auth_backend = AdminAuth(secret_key=os.getenv("SECRET_KEY", "super_secret_admin_key"))
 
 class UserAdmin(ModelView, model=User):
-    name = "Сотрудник"
+    name = "сотрудник"
     name_plural = "Сотрудники"
     icon = "fa-solid fa-user"
     column_list = [User.id, User.name, User.phone, User.email, User.role, User.warehouse, User.is_active]
@@ -56,7 +56,8 @@ class UserAdmin(ModelView, model=User):
     
     # Русификация значений ролей
     column_formatters = {
-        User.role: lambda m, a: "Оператор" if m.role.value == "operator" else "Экспедитор"
+        User.role: lambda m, a: "Оператор" if m.role.value == "operator" else "Экспедитор",
+        User.is_active: lambda m, a: "Да" if m.is_active else "Нет"
     }
 
 class OTPCodeAdmin(ModelView, model=OTPCode):
@@ -89,5 +90,5 @@ class WarehouseAdmin(ModelView, model=Warehouse):
         Warehouse.id: "ID",
         Warehouse.number: "Номер склада",
         Warehouse.address: "Адрес",
-        Warehouse.users: "Сотрудники",
+        Warehouse.users: "сотрудники",
     }

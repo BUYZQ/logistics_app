@@ -2,7 +2,7 @@
 Некст — FastAPI Backend
 Точка входа приложения.
 """
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 from sqladmin import Admin
 
@@ -16,8 +16,17 @@ app = FastAPI(
     version="1.0.0",
 )
 
+from pathlib import Path
+BASE_DIR = Path(__file__).resolve().parent
+
 # Подключение админки с авторизацией
-admin = Admin(app, engine, title="Некст — База данных", authentication_backend=admin_auth_backend, templates_dir="templates")
+admin = Admin(
+    app, 
+    engine, 
+    title="Некст — База данных", 
+    authentication_backend=admin_auth_backend, 
+    templates_dir=str(BASE_DIR.parent / "templates")
+)
 admin.add_view(UserAdmin)
 admin.add_view(OTPCodeAdmin)
 admin.add_view(WarehouseAdmin)
@@ -47,6 +56,10 @@ def root():
 def health():
     return {"status": "healthy"}
 
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return Response(status_code=204)
 
 # Подключаем роутеры
 app.include_router(auth.router)
