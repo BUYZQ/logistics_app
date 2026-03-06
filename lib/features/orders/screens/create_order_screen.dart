@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:logistics_app/app/theme.dart';
 import 'package:logistics_app/core/models/order.dart';
 import 'package:logistics_app/core/models/user.dart';
+import 'package:logistics_app/core/services/order_service.dart';
 import 'package:logistics_app/core/widgets/app_button.dart';
 import 'package:logistics_app/features/orders/widgets/section_label.dart';
 
@@ -69,9 +70,9 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     setState(() => _loading = true);
     await Future.delayed(const Duration(milliseconds: 700));
     final newOrder = Order(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: '',
       number:
-          'ПИ-${DateTime.now().year}-${(OrderStore.getAll().length + 1).toString().padLeft(3, '0')}',
+          'ПИ-${DateTime.now().year}-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}',
       cargoName: _cargoCtrl.text,
       cargoWeight: _weightCtrl.text,
       fromAddress: _fromCtrl.text,
@@ -86,16 +87,25 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       operatorName: AuthState.currentUser!.name,
       comment: _noteCtrl.text.isEmpty ? null : _noteCtrl.text,
     );
-    OrderStore.addOrder(newOrder);
-    if (mounted) {
-      setState(() => _loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Заявка ${newOrder.number} создана'),
-          backgroundColor: AppTheme.success,
-        ),
-      );
-      context.pop();
+    try {
+      final created = await OrderService.createOrder(newOrder);
+      if (mounted) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Заявка ${created.number} создана'),
+            backgroundColor: AppTheme.success,
+          ),
+        );
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка: $e'), backgroundColor: AppTheme.danger),
+        );
+      }
     }
   }
 

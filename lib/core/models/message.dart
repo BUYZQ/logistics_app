@@ -1,7 +1,6 @@
 class ChatMessage {
   final String id;
   final String senderId;
-  final String senderName;
   final String text;
   final DateTime timestamp;
   final bool isRead;
@@ -9,11 +8,20 @@ class ChatMessage {
   const ChatMessage({
     required this.id,
     required this.senderId,
-    required this.senderName,
     required this.text,
     required this.timestamp,
     this.isRead = false,
   });
+
+  factory ChatMessage.fromJson(Map<String, dynamic> json) {
+    return ChatMessage(
+      id: json['id'].toString(),
+      senderId: json['sender_id'].toString(),
+      text: json['text'] as String,
+      timestamp: DateTime.parse(json['timestamp'] as String).toLocal(),
+      isRead: json['is_read'] as bool? ?? false,
+    );
+  }
 }
 
 class ChatRoom {
@@ -24,6 +32,7 @@ class ChatRoom {
   final String otherUserId;
   final List<ChatMessage> messages;
   final int unreadCount;
+  final ChatMessage? lastMessage;
 
   const ChatRoom({
     required this.id,
@@ -31,102 +40,33 @@ class ChatRoom {
     required this.orderNumber,
     required this.otherUserName,
     required this.otherUserId,
-    required this.messages,
+    this.messages = const [],
     this.unreadCount = 0,
+    this.lastMessage,
   });
 
-  ChatMessage? get lastMessage =>
-      messages.isEmpty ? null : messages.last;
-}
-
-class ChatStore {
-  static final List<ChatRoom> _rooms = [
-    ChatRoom(
-      id: 'chat1',
-      orderId: '2',
-      orderNumber: 'ПИ-2024-002',
-      otherUserName: 'Дмитрий Петров',
-      otherUserId: 'ex1',
-      unreadCount: 2,
-      messages: [
-        ChatMessage(
-          id: 'm1',
-          senderId: 'op1',
-          senderName: 'Алексей Иванов',
-          text: 'Дмитрий, заявка ПИ-2024-002 готова к выполнению',
-          timestamp: DateTime.now().subtract(const Duration(minutes: 30)),
-          isRead: true,
-        ),
-        ChatMessage(
-          id: 'm2',
-          senderId: 'ex1',
-          senderName: 'Дмитрий Петров',
-          text: 'Принял, буду на месте через 20 минут',
-          timestamp: DateTime.now().subtract(const Duration(minutes: 25)),
-          isRead: true,
-        ),
-        ChatMessage(
-          id: 'm3',
-          senderId: 'ex1',
-          senderName: 'Дмитрий Петров',
-          text: 'Уже загружаю товар',
-          timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
-          isRead: false,
-        ),
-      ],
-    ),
-    ChatRoom(
-      id: 'chat2',
-      orderId: '3',
-      orderNumber: 'ПИ-2024-003',
-      otherUserName: 'Дмитрий Петров',
-      otherUserId: 'ex1',
-      unreadCount: 0,
-      messages: [
-        ChatMessage(
-          id: 'm4',
-          senderId: 'op1',
-          senderName: 'Алексей Иванов',
-          text: 'Как дела с продуктами? Всё в порядке?',
-          timestamp: DateTime.now().subtract(const Duration(hours: 1)),
-          isRead: true,
-        ),
-        ChatMessage(
-          id: 'm5',
-          senderId: 'ex1',
-          senderName: 'Дмитрий Петров',
-          text: 'Да, груз принял, еду по маршруту',
-          timestamp: DateTime.now().subtract(const Duration(minutes: 45)),
-          isRead: true,
-        ),
-      ],
-    ),
-  ];
-
-  static List<ChatRoom> getRoomsForUser(String userId) => List.from(_rooms);
-
-  static ChatRoom? getRoomById(String id) {
-    try {
-      return _rooms.firstWhere((r) => r.id == id);
-    } catch (_) {
-      return null;
+  factory ChatRoom.fromJson(Map<String, dynamic> json) {
+    ChatMessage? last;
+    if (json['last_message'] != null) {
+      last = ChatMessage.fromJson(json['last_message']);
     }
-  }
-
-  static void addMessage(String roomId, ChatMessage msg) {
-    final idx = _rooms.indexWhere((r) => r.id == roomId);
-    if (idx != -1) {
-      final room = _rooms[idx];
-      final updated = ChatRoom(
-        id: room.id,
-        orderId: room.orderId,
-        orderNumber: room.orderNumber,
-        otherUserName: room.otherUserName,
-        otherUserId: room.otherUserId,
-        messages: [...room.messages, msg],
-        unreadCount: 0,
-      );
-      _rooms[idx] = updated;
+    
+    List<ChatMessage> msgs = [];
+    if (json['messages'] != null) {
+      msgs = (json['messages'] as List)
+          .map((e) => ChatMessage.fromJson(e as Map<String, dynamic>))
+          .toList();
     }
+
+    return ChatRoom(
+      id: json['id'].toString(),
+      orderId: json['order_id'] ?? '',
+      orderNumber: json['order_number'] ?? '',
+      otherUserName: json['other_user_name'] ?? 'Неизвестно',
+      otherUserId: json['other_user_id']?.toString() ?? '',
+      unreadCount: json['unread_count'] as int? ?? 0,
+      lastMessage: last,
+      messages: msgs,
+    );
   }
 }

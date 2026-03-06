@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:logistics_app/app/theme.dart';
 import 'package:logistics_app/core/models/user.dart';
+import 'package:logistics_app/core/services/api_service.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -115,9 +117,15 @@ class ProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             GestureDetector(
-              onTap: () {
+              onTap: () async {
+                await ApiService.clearToken();
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.remove('user_data');
+                
                 AuthState.currentUser = null;
-                context.go('/login');
+                if (context.mounted) {
+                  context.go('/login');
+                }
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 14),

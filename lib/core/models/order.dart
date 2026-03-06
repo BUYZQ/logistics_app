@@ -53,6 +53,21 @@ extension OrderStatusExtension on OrderStatus {
         return -1;
     }
   }
+
+  static OrderStatus fromString(String status) {
+    switch (status) {
+      case 'accepted':
+        return OrderStatus.accepted;
+      case 'inTransit':
+        return OrderStatus.inTransit;
+      case 'delivered':
+        return OrderStatus.delivered;
+      case 'cancelled':
+        return OrderStatus.cancelled;
+      default:
+        return OrderStatus.pending;
+    }
+  }
 }
 
 class Order {
@@ -125,109 +140,56 @@ class Order {
       expeditorPhone: expeditorPhone ?? this.expeditorPhone,
       comment: comment ?? this.comment,
       attachedPhotos: attachedPhotos ?? this.attachedPhotos,
-      operatorName: operatorName,
     );
   }
-}
 
-// In-memory mock data store
-// Компания «Некст» — поставка пищевых товаров, г. Нерюнгри
-// Склады: ул. Амгинская, 5 / 6 / 7 / 8, Нерюнгри, Респ. Саха (Якутия), 678960
-class OrderStore {
-  static final List<Order> _orders = [
-    Order(
-      id: '1',
-      number: 'НКТ-2026-001',
-      cargoName: 'Соки и нектары',
-      cargoWeight: '2 пал. (1.2 т)',
-      fromAddress: 'Склад №1, ул. Амгинская, 5, Нерюнгри',
-      toAddress: 'Магазин «Седьмой», ул. Ленина, 35, Нерюнгри',
-      fromLat: 56.6542,
-      fromLng: 124.7185,
-      toLat: 56.6596,
-      toLng: 124.7110,
-      date: DateTime.now().add(const Duration(hours: 2)),
-      status: OrderStatus.pending,
-      operatorId: 'op1',
-      operatorName: 'Алексей Иванов',
-      expeditorPhone: '+7 (914) 001-23-45',
-    ),
-    Order(
-      id: '2',
-      number: 'НКТ-2026-002',
-      cargoName: 'Чипсы и снеки',
-      cargoWeight: '1 пал. (480 кг)',
-      fromAddress: 'Склад №2, ул. Амгинская, 6, Нерюнгри',
-      toAddress: 'Торговый центр «Фортуна», пр. Дружбы Народов, 18',
-      fromLat: 56.6535,
-      fromLng: 124.7198,
-      toLat: 56.6712,
-      toLng: 124.7320,
-      date: DateTime.now().add(const Duration(hours: 1)),
-      status: OrderStatus.accepted,
-      operatorId: 'op1',
-      operatorName: 'Алексей Иванов',
-      expeditorId: 'ex1',
-      expeditorName: 'Дмитрий Петров',
-      expeditorPhone: '+7 (914) 765-43-21',
-    ),
-    Order(
-      id: '3',
-      number: 'НКТ-2026-003',
-      cargoName: 'Лапша быстрого приготовления',
-      cargoWeight: '3 пал. (1.8 т)',
-      fromAddress: 'Склад №3, ул. Амгинская, 7, Нерюнгри',
-      toAddress: 'Оптовая база «Якутопторг», ул. Кравченко, 12',
-      fromLat: 56.6528,
-      fromLng: 124.7210,
-      toLat: 56.6540,
-      toLng: 124.7080,
-      date: DateTime.now().subtract(const Duration(hours: 3)),
-      status: OrderStatus.inTransit,
-      operatorId: 'op1',
-      operatorName: 'Алексей Иванов',
-      expeditorId: 'ex1',
-      expeditorName: 'Дмитрий Петров',
-      expeditorPhone: '+7 (914) 765-43-21',
-    ),
-    Order(
-      id: '4',
-      number: 'НКТ-2026-004',
-      cargoName: 'Кофе, чай, сахар',
-      cargoWeight: '2 пал. (900 кг)',
-      fromAddress: 'Склад №4, ул. Амгинская, 8, Нерюнгри',
-      toAddress: 'Магазин «Полюс», ул. Чайковского, 3, Нерюнгри',
-      fromLat: 56.6521,
-      fromLng: 124.7223,
-      toLat: 56.6650,
-      toLng: 124.7220,
-      date: DateTime.now().subtract(const Duration(days: 1)),
-      status: OrderStatus.delivered,
-      operatorId: 'op1',
-      operatorName: 'Алексей Иванов',
-      expeditorId: 'ex1',
-      expeditorName: 'Дмитрий Петров',
-      expeditorPhone: '+7 (914) 765-43-21',
-      comment: 'Доставлено без замечаний. Паллеты возвращены на склад.',
-    ),
-  ];
+  factory Order.fromJson(Map<String, dynamic> json) {
+    List<String> parsedPhotos = [];
+    if (json['attachedPhotos'] != null) {
+      try {
+        parsedPhotos = List<String>.from(json['attachedPhotos']);
+      } catch (_) {}
+    }
 
-  static List<Order> getAll() => List.from(_orders);
-
-  static List<Order> getForExpeditor(String expeditorId) {
-    return _orders
-        .where((o) =>
-            o.expeditorId == expeditorId ||
-            (o.status == OrderStatus.pending && o.expeditorId == null))
-        .toList();
+    return Order(
+      id: json['id']?.toString() ?? '',
+      number: json['number'] ?? '',
+      cargoName: json['cargoName'] ?? '',
+      cargoWeight: json['cargoWeight'] ?? '',
+      fromAddress: json['fromAddress'] ?? '',
+      toAddress: json['toAddress'] ?? '',
+      fromLat: (json['fromLat'] as num?)?.toDouble() ?? 0.0,
+      fromLng: (json['fromLng'] as num?)?.toDouble() ?? 0.0,
+      toLat: (json['toLat'] as num?)?.toDouble() ?? 0.0,
+      toLng: (json['toLng'] as num?)?.toDouble() ?? 0.0,
+      date: json['date'] != null ? DateTime.parse(json['date']) : DateTime.now(),
+      status: OrderStatusExtension.fromString(json['status'] ?? 'pending'),
+      operatorId: json['operatorId']?.toString() ?? '',
+      expeditorId: json['expeditorId']?.toString(),
+      expeditorName: json['expeditorName'],
+      expeditorPhone: json['expeditorPhone'],
+      comment: json['comment'],
+      attachedPhotos: parsedPhotos,
+      operatorName: json['operatorName'],
+    );
   }
 
-  static void updateOrder(Order updated) {
-    final idx = _orders.indexWhere((o) => o.id == updated.id);
-    if (idx != -1) _orders[idx] = updated;
-  }
-
-  static void addOrder(Order order) {
-    _orders.insert(0, order);
+  Map<String, dynamic> toJson() {
+    return {
+      'number': number,
+      'cargoName': cargoName,
+      'cargoWeight': cargoWeight,
+      'fromAddress': fromAddress,
+      'toAddress': toAddress,
+      'fromLat': fromLat,
+      'fromLng': fromLng,
+      'toLat': toLat,
+      'toLng': toLng,
+      'expeditorId': expeditorId,
+      'expeditorName': expeditorName,
+      'expeditorPhone': expeditorPhone,
+      'comment': comment,
+      'attachedPhotos': attachedPhotos,
+    };
   }
 }

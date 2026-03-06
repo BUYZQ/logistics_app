@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:logistics_app/app/theme.dart';
 import 'package:logistics_app/core/models/order.dart';
 import 'package:logistics_app/core/models/user.dart';
+import 'package:logistics_app/core/services/order_service.dart';
 import 'package:logistics_app/features/orders/widgets/order_card.dart';
 import 'package:logistics_app/features/orders/widgets/orders_empty_state.dart';
 
@@ -17,6 +18,8 @@ class _OrdersListScreenState extends State<OrdersListScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabCtrl;
   bool _refreshing = false;
+  bool _loading = true;
+  List<Order> _allOrders = [];
 
   static const tabs = ['Все', 'Новые', 'Активные', 'Завершённые'];
 
@@ -24,6 +27,21 @@ class _OrdersListScreenState extends State<OrdersListScreen>
   void initState() {
     super.initState();
     _tabCtrl = TabController(length: tabs.length, vsync: this);
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      final orders = await OrderService.getOrders();
+      if (mounted) {
+        setState(() {
+          _allOrders = orders;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
@@ -33,31 +51,30 @@ class _OrdersListScreenState extends State<OrdersListScreen>
   }
 
   List<Order> _filtered(int tab) {
-    final all = OrderStore.getAll();
     switch (tab) {
       case 1:
-        return all.where((o) => o.status == OrderStatus.pending).toList();
+        return _allOrders.where((o) => o.status == OrderStatus.pending).toList();
       case 2:
-        return all
+        return _allOrders
             .where((o) =>
                 o.status == OrderStatus.accepted ||
                 o.status == OrderStatus.inTransit)
             .toList();
       case 3:
-        return all
+        return _allOrders
             .where((o) =>
                 o.status == OrderStatus.delivered ||
                 o.status == OrderStatus.cancelled)
             .toList();
       default:
-        return all;
+        return _allOrders;
     }
   }
 
   Future<void> _refresh() async {
     setState(() => _refreshing = true);
-    await Future.delayed(const Duration(milliseconds: 800));
-    setState(() => _refreshing = false);
+    await _loadData();
+    if (mounted) setState(() => _refreshing = false);
   }
 
   @override
@@ -169,16 +186,18 @@ class _OrdersListScreenState extends State<OrdersListScreen>
             ),
             const SliverToBoxAdapter(child: SizedBox(height: 12)),
           ],
-          body: AnimatedBuilder(
-            animation: _tabCtrl,
-            builder: (_, __) {
-              final orders = _filtered(_tabCtrl.index);
-              return RefreshIndicator(
-                onRefresh: _refresh,
-                color: accentColor,
-                backgroundColor: surfaceColor,
-                child: orders.isEmpty
-                    ? const OrdersEmptyState()
+          body: _loading
+              ? Center(child: CircularProgressIndicator(color: accentColor))
+              : AnimatedBuilder(
+                  animation: _tabCtrl,
+                  builder: (_, __) {
+                    final orders = _filtered(_tabCtrl.index);
+                    return RefreshIndicator(
+                      onRefresh: _refresh,
+                      color: accentColor,
+                      backgroundColor: surfaceColor,
+                      child: orders.isEmpty
+                          ? const OrdersEmptyState()
                     : ListView.separated(
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
                         itemCount: orders.length,

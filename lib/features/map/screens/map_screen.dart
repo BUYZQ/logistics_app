@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:yandex_mapkit/yandex_mapkit.dart';
 import 'package:logistics_app/app/theme.dart';
 import 'package:logistics_app/core/models/order.dart';
+import 'package:logistics_app/core/services/order_service.dart';
 import 'package:logistics_app/core/widgets/status_badge.dart';
 
 // Центр Нерюнгри
@@ -24,9 +25,20 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void initState() {
     super.initState();
-    _order = OrderStore.getAll()
-        .where((o) => o.id == widget.orderId)
-        .firstOrNull;
+    _loadOrder();
+  }
+
+  Future<void> _loadOrder() async {
+    try {
+      final orders = await OrderService.getOrders();
+      if (mounted) {
+        setState(() {
+          _order = orders.where((o) => o.id == widget.orderId).firstOrNull;
+        });
+      }
+    } catch (e) {
+      // Ignored for now
+    }
   }
 
   @override

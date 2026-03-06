@@ -1,16 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:logistics_app/app/theme.dart';
 import 'package:logistics_app/core/models/message.dart';
-import 'package:logistics_app/core/models/user.dart';
+import 'package:logistics_app/core/services/chat_service.dart';
 import 'package:logistics_app/features/chat/widgets/chat_room_card.dart';
 
-class ChatListScreen extends StatelessWidget {
+class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final rooms = ChatStore.getRoomsForUser(AuthState.currentUser?.id ?? '');
+  State<ChatListScreen> createState() => _ChatListScreenState();
+}
 
+class _ChatListScreenState extends State<ChatListScreen> {
+  late Future<List<ChatRoom>> _futureRooms;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRooms();
+  }
+
+  void _loadRooms() {
+    setState(() {
+      _futureRooms = ChatService.getRooms();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final isDark = cs.brightness == Brightness.dark;
     final bgColor = isDark ? AppTheme.background : AppTheme.lBackground;
@@ -35,17 +52,37 @@ class ChatListScreen extends StatelessWidget {
               ),
             ),
             Expanded(
-              child: rooms.isEmpty
-                  ? Center(
-                      child: Text('Нет чатов',
-                          style: TextStyle(color: secondaryText)))
-                  : ListView.separated(
+              child: FutureBuilder<List<ChatRoom>>(
+                future: _futureRooms,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Center(
+                        child: Text('Ошибка загрузки: ${snapshot.error}',
+                            style: TextStyle(color: secondaryText)));
+                  }
+
+                  final rooms = snapshot.data ?? [];
+
+                  if (rooms.isEmpty) {
+                    return Center(
+                        child: Text('Нет чатов',
+                            style: TextStyle(color: secondaryText)));
+                  }
+
+                  return RefreshIndicator(
+                    onRefresh: () async => _loadRooms(),
+                    child: ListView.separated(
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
                       itemCount: rooms.length,
-                      separatorBuilder: (_, __) =>
-                          const SizedBox(height: 10),
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
                       itemBuilder: (_, i) => ChatRoomCard(room: rooms[i]),
                     ),
+                  );
+                },
+              ),
             ),
           ],
         ),

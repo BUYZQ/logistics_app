@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:logistics_app/app/theme.dart';
 import 'package:logistics_app/core/models/message.dart';
 import 'package:logistics_app/core/models/user.dart';
+import 'package:logistics_app/core/services/chat_service.dart';
 import 'package:logistics_app/features/chat/widgets/message_bubble.dart';
 import 'package:logistics_app/features/chat/widgets/date_divider.dart';
 import 'package:logistics_app/features/chat/widgets/chat_input_bar.dart';
@@ -20,16 +22,54 @@ class _ChatScreenState extends State<ChatScreen> {
   final _textCtrl = TextEditingController();
   final _scrollCtrl = ScrollController();
   bool _sending = false;
+  Timer? _timer;
+  bool _initialLoad = true;
 
   @override
   void initState() {
     super.initState();
-    _room = ChatStore.getRoomById(widget.roomId);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+    _loadMessages();
+    _timer = Timer.periodic(const Duration(seconds: 3), (_) => _pollMessages());
+  }
+
+  Future<void> _loadMessages() async {
+    try {
+      final room = await ChatService.getRoomMessages(widget.roomId);
+      if (mounted) {
+        setState(() {
+          _room = room;
+          _initialLoad = false;
+        });
+        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _initialLoad = false);
+      }
+    }
+  }
+
+  Future<void> _pollMessages() async {
+    if (_sending) return;
+    try {
+      final room = await ChatService.getRoomMessages(widget.roomId);
+      if (mounted) {
+        // Only trigger rebuild if new messages arrived
+        if (_room == null || _room!.messages.length != room.messages.length) {
+          setState(() {
+            _room = room;
+          });
+          WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+        }
+      }
+    } catch (_) {
+      // Ignore polling errors
+    }
   }
 
   @override
   void dispose() {
+    _timer?.cancel();
     _textCtrl.dispose();
     _scrollCtrl.dispose();
     super.dispose();
@@ -50,19 +90,18 @@ class _ChatScreenState extends State<ChatScreen> {
     if (text.isEmpty) return;
     _textCtrl.clear();
     setState(() => _sending = true);
-    final msg = ChatMessage(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      senderId: AuthState.currentUser!.id,
-      senderName: AuthState.currentUser!.name,
-      text: text,
-      timestamp: DateTime.now(),
-      isRead: true,
-    );
-    ChatStore.addMessage(widget.roomId, msg);
-    _room = ChatStore.getRoomById(widget.roomId);
-    await Future.delayed(const Duration(milliseconds: 100));
-    setState(() => _sending = false);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+    
+    try {
+      await ChatService.sendMessage(widget.roomId, text);
+      await _loadMessages(); // reload to get the new message
+    } catch (_) {
+      // optionally show error
+    } finally {
+      if (mounted) {
+        setState(() => _sending = false);
+        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+      }
+    }
   }
 
   bool _isSameDay(DateTime a, DateTime b) =>
@@ -77,8 +116,14 @@ class _ChatScreenState extends State<ChatScreen> {
     final secondaryText = isDark ? AppTheme.textSecondary : AppTheme.lTextSecondary;
     final successColor = isDark ? AppTheme.success : AppTheme.lSuccess;
 
-    if (_room == null) {
+    if (_initialLoad) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (_room == null) {
+      return Scaffold(
+        appBar: AppBar(),
+        body: const Center(child: Text("Ошибка загрузки чата")),
+      );
     }
     final msgs = _room!.messages;
     final myId = AuthState.currentUser!.id;

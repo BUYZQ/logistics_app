@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:logistics_app/app/theme.dart';
@@ -93,6 +95,10 @@ class _LoginScreenState extends State<LoginScreen>
       final token = result['access_token'] as String;
       await ApiService.saveToken(token);
       final userJson = result['user'] as Map<String, dynamic>;
+      
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_data', jsonEncode(userJson));
+      
       AuthState.currentUser = AppUser.fromJson(userJson);
       if (mounted) {
         context.go(AuthState.currentUser!.role == UserRole.operator

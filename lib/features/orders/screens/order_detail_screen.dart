@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:logistics_app/app/theme.dart';
 import 'package:logistics_app/core/models/order.dart';
+import 'package:logistics_app/core/services/order_service.dart';
 import 'package:logistics_app/core/widgets/app_button.dart';
 import 'package:logistics_app/features/orders/widgets/order_status_section.dart';
 import 'package:logistics_app/features/orders/widgets/order_info_card.dart';
@@ -26,9 +27,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     _load();
   }
 
-  void _load() {
-    final o = OrderStore.getAll().where((o) => o.id == widget.orderId).firstOrNull;
-    setState(() => _order = o);
+  Future<void> _load() async {
+    try {
+      final orders = await OrderService.getOrders();
+      if (mounted) {
+        setState(() {
+          _order = orders.where((o) => o.id == widget.orderId).firstOrNull;
+        });
+      }
+    } catch (e) {
+      // Ignored for now
+    }
   }
 
   Future<void> _call(String phone) async {
@@ -59,12 +68,29 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             child: Text('Назад', style: TextStyle(color: secondaryText)),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
               if (_order != null) {
-                final updated = _order!.copyWith(status: OrderStatus.cancelled);
-                OrderStore.updateOrder(updated);
-                setState(() => _order = updated);
+                // Show loading
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (_) => const Center(child: CircularProgressIndicator()),
+                );
+                try {
+                  await OrderService.updateOrderStatus(_order!.id, OrderStatus.cancelled);
+                  if (mounted) {
+                    Navigator.pop(context); // close dialog
+                    _load();
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    Navigator.pop(context); // close dialog
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Ошибка: $e'), backgroundColor: AppTheme.danger),
+                    );
+                  }
+                }
               }
             },
             child: Text('Отклонить', style: TextStyle(color: dangerColor)),

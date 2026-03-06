@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:logistics_app/app/theme.dart';
 import 'package:logistics_app/core/models/order.dart';
+import 'package:logistics_app/core/services/order_service.dart';
 import 'package:logistics_app/core/widgets/app_button.dart';
 import 'package:logistics_app/features/expeditor/widgets/confirm_widgets.dart';
 
@@ -24,9 +25,20 @@ class _OrderConfirmScreenState extends State<OrderConfirmScreen> {
   @override
   void initState() {
     super.initState();
-    _order = OrderStore.getAll()
-        .where((o) => o.id == widget.orderId)
-        .firstOrNull;
+    _loadOrder();
+  }
+
+  Future<void> _loadOrder() async {
+    try {
+      final orders = await OrderService.getOrders();
+      if (mounted) {
+        setState(() {
+          _order = orders.where((o) => o.id == widget.orderId).firstOrNull;
+        });
+      }
+    } catch (e) {
+      // Ignored for now
+    }
   }
 
   @override
@@ -115,25 +127,34 @@ class _OrderConfirmScreenState extends State<OrderConfirmScreen> {
       return;
     }
     setState(() => _loading = true);
-    await Future.delayed(const Duration(milliseconds: 800));
-    if (_order != null) {
-      final updated = _order!.copyWith(
-        status: OrderStatus.delivered,
-        comment: _commentCtrl.text.trim(),
-      );
-      OrderStore.updateOrder(updated);
-    }
-    if (mounted) {
-      setState(() => _loading = false);
-      final cs = Theme.of(context).colorScheme;
-      final isDark = cs.brightness == Brightness.dark;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Доставка подтверждена!'),
-          backgroundColor: isDark ? AppTheme.success : AppTheme.lSuccess,
-        ),
-      );
-      context.pop();
+    try {
+      if (_order != null) {
+        await OrderService.updateOrderStatus(
+          _order!.id,
+          OrderStatus.delivered,
+          comment: _commentCtrl.text.trim(),
+          attachedPhotos: _photos.map((p) => p.path).toList(), // just storing paths locally to simulate
+        );
+      }
+      if (mounted) {
+        setState(() => _loading = false);
+        final cs = Theme.of(context).colorScheme;
+        final isDark = cs.brightness == Brightness.dark;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Доставка подтверждена!'),
+            backgroundColor: isDark ? AppTheme.success : AppTheme.lSuccess,
+          ),
+        );
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка: $e'), backgroundColor: AppTheme.danger),
+        );
+      }
     }
   }
 

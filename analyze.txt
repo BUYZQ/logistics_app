@@ -1,0 +1,22 @@
+﻿Analyzing logistics_app...
+
+warning - lib\features\expeditor\screens\expeditor_home_screen.dart:18:8 - The value of the field '_refreshing' isn't used. Try removing the field, or using it. - unused_field
+warning - lib\features\map\screens\map_screen.dart:9:7 - The declaration '_neryungriCenter' isn't referenced. Try removing the declaration of '_neryungriCenter'. - unused_element
+warning - lib\features\orders\screens\orders_list_screen.dart:19:8 - The value of the field '_refreshing' isn't used. Try removing the field, or using it. - unused_field
+   info - lib\app\shell_scaffold.dart:42:9 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib\app\shell_scaffold.dart:44:9 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib\app\shell_scaffold.dart:48:9 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib\app\shell_scaffold.dart:50:9 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib\core\models\user.dart:54:5 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib\core\models\user.dart:60:5 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib\features\auth\screens\login_screen.dart:388:45 - Unnecessary braces in a string interpolation. Try removing the braces. - unnecessary_brace_in_string_interps
+   info - lib\features\expeditor\screens\order_confirm_screen.dart:191:11 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib\features\expeditor\screens\order_confirm_screen.dart:219:15 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib\features\orders\screens\create_order_screen.dart:127:13 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib\features\orders\screens\create_order_screen.dart:143:13 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib\features\orders\screens\create_order_screen.dart:159:13 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib\features\orders\screens\create_order_screen.dart:187:13 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib\features\profile\screens\profile_screen.dart:91:13 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib\features\profile\screens\profile_screen.dart:105:13 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+
+18 issues found.

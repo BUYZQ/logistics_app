@@ -59,34 +59,8 @@ class ExpeditorRouteRow extends StatelessWidget {
   }
 }
 
-// ─── Empty state ─────────────────────────────────────────────────────────────
+// (Removed redundant ExpeditorEmptyState which now has its own file)
 
-class ExpeditorEmptyState extends StatelessWidget {
-  const ExpeditorEmptyState({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final isDark = cs.brightness == Brightness.dark;
-    final secondaryText = isDark ? AppTheme.textSecondary : AppTheme.lTextSecondary;
-
-    return ListView(
-      children: [
-        const SizedBox(height: 80),
-        Center(
-          child: Column(
-            children: [
-              Icon(Icons.inbox_outlined, size: 56, color: secondaryText),
-              const SizedBox(height: 12),
-              Text('Нет активных заявок',
-                  style: TextStyle(color: secondaryText, fontSize: 16)),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 // ─── Action button ────────────────────────────────────────────────────────────
 
@@ -138,6 +112,7 @@ class ExpeditorActionRow extends StatelessWidget {
   final VoidCallback onCall;
   final VoidCallback onMap;
   final VoidCallback onConfirm;
+  final VoidCallback onChat;
 
   const ExpeditorActionRow({
     super.key,
@@ -147,6 +122,7 @@ class ExpeditorActionRow extends StatelessWidget {
     required this.onCall,
     required this.onMap,
     required this.onConfirm,
+    required this.onChat,
   });
 
   @override
@@ -203,16 +179,16 @@ class ExpeditorActionRow extends StatelessWidget {
       return Row(
         children: [
           ExpeditorActionBtn(
-              icon: Icons.map_outlined,
-              label: 'Карта',
+              icon: Icons.chat_bubble_outline_rounded,
+              label: 'Чат',
               color: accentColor,
-              onTap: onMap),
+              onTap: onChat),
           const SizedBox(width: 8),
           ExpeditorActionBtn(
-              icon: Icons.phone_outlined,
-              label: 'Позвонить',
+              icon: Icons.map_outlined,
+              label: 'Карта',
               color: secondaryText,
-              onTap: onCall),
+              onTap: onMap),
           const SizedBox(width: 8),
           if (order.status == OrderStatus.inTransit ||
               order.status == OrderStatus.accepted)
@@ -257,6 +233,7 @@ class ExpeditorOrderCard extends StatelessWidget {
   final VoidCallback onCall;
   final VoidCallback onMap;
   final VoidCallback onConfirm;
+  final VoidCallback onChat;
 
   const ExpeditorOrderCard({
     super.key,
@@ -267,6 +244,7 @@ class ExpeditorOrderCard extends StatelessWidget {
     required this.onCall,
     required this.onMap,
     required this.onConfirm,
+    required this.onChat,
   });
 
   @override
@@ -355,6 +333,7 @@ class ExpeditorOrderCard extends StatelessWidget {
                   onCall: onCall,
                   onMap: onMap,
                   onConfirm: onConfirm,
+                  onChat: onChat,
                 ),
               ),
             ],

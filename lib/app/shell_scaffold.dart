@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:logistics_app/app/theme.dart';
 import 'package:logistics_app/core/models/user.dart';
-import 'package:logistics_app/core/models/message.dart';
+import 'package:logistics_app/core/services/chat_service.dart';
 
 class ShellScaffold extends StatefulWidget {
   final Widget child;
@@ -14,11 +14,28 @@ class ShellScaffold extends StatefulWidget {
 
 class _ShellScaffoldState extends State<ShellScaffold> {
   int _selectedIndex = 0;
+  int _unreadCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUnread();
+  }
+
+  Future<void> _loadUnread() async {
+    try {
+      final rooms = await ChatService.getRooms();
+      if (mounted) {
+        setState(() {
+          _unreadCount = rooms.fold(0, (sum, r) => sum + r.unreadCount);
+        });
+      }
+    } catch (_) {}
+  }
 
   List<_NavItem> get _items {
     final isOperator = AuthState.currentUser?.role == UserRole.operator;
-    final unread = ChatStore.getRoomsForUser(AuthState.currentUser?.id ?? '')
-        .fold<int>(0, (sum, r) => sum + r.unreadCount);
+    final unread = _unreadCount;
 
     if (isOperator) {
       return [

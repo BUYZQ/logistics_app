@@ -4,7 +4,12 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:logistics_app/app/theme.dart';
 import 'package:logistics_app/core/models/order.dart';
 import 'package:logistics_app/core/models/user.dart';
-import 'package:logistics_app/features/expeditor/widgets/expeditor_order_card.dart';
+import 'package:logistics_app/core/services/chat_service.dart';
+import 'package:logistics_app/core/services/order_service.dart';
+import 'package:logistics_app/core/widgets/app_button.dart';
+import 'package:logistics_app/features/expeditor/widgets/expeditor_empty_state.dart';
+import 'package:logistics_app/features/expeditor/widgets/expeditor_order_card.dart' hide ExpeditorEmptyState;
+
 
 class ExpeditorHomeScreen extends StatefulWidget {
   const ExpeditorHomeScreen({super.key});
@@ -15,34 +20,72 @@ class ExpeditorHomeScreen extends StatefulWidget {
 
 class _ExpeditorHomeScreenState extends State<ExpeditorHomeScreen> {
   bool _refreshing = false;
+  bool _loading = true;
+  List<Order> _orders = [];
 
-  List<Order> get _orders =>
-      OrderStore.getForExpeditor(AuthState.currentUser!.id);
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      final orders = await OrderService.getOrders();
+      if (mounted) {
+        setState(() {
+          _orders = orders;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
   Future<void> _refresh() async {
     setState(() => _refreshing = true);
-    await Future.delayed(const Duration(milliseconds: 600));
-    setState(() => _refreshing = false);
+    await _loadData();
+    if (mounted) setState(() => _refreshing = false);
   }
 
-  void _accept(Order o) {
-    final updated = o.copyWith(
-      status: OrderStatus.accepted,
-      expeditorId: AuthState.currentUser!.id,
-      expeditorName: AuthState.currentUser!.name,
-      expeditorPhone: AuthState.currentUser!.phone ?? '',
-    );
-    OrderStore.updateOrder(updated);
-    setState(() {});
+  void _accept(Order o) async {
     final cs = Theme.of(context).colorScheme;
     final isDark = cs.brightness == Brightness.dark;
     final successColor = isDark ? AppTheme.success : AppTheme.lSuccess;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Заявка ${o.number} принята'),
-        backgroundColor: successColor,
-      ),
+    
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
     );
+    try {
+      await OrderService.updateOrderStatus(
+        o.id,
+        OrderStatus.accepted,
+        expeditorId: AuthState.currentUser!.id,
+        expeditorName: AuthState.currentUser!.name,
+        expeditorPhone: AuthState.currentUser!.phone ?? '',
+      );
+      if (mounted) {
+        Navigator.pop(context); // close dialog
+        await _loadData(); // reload
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Заявка ${o.number} принята'),
+            backgroundColor: successColor,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // close dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка: $e'), backgroundColor: AppTheme.danger),
+        );
+      }
+    }
   }
 
   void _reject(Order o) {
@@ -66,11 +109,28 @@ class _ExpeditorHomeScreenState extends State<ExpeditorHomeScreen> {
             child: Text('Назад', style: TextStyle(color: secondaryText)),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.of(dialogContext).pop();
-              OrderStore.updateOrder(
-                  o.copyWith(status: OrderStatus.cancelled));
-              setState(() {});
+              // Show loading
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) => const Center(child: CircularProgressIndicator()),
+              );
+              try {
+                await OrderService.updateOrderStatus(o.id, OrderStatus.cancelled);
+                if (mounted) {
+                  Navigator.pop(context); // close loading
+                  await _loadData();
+                }
+              } catch (e) {
+                if (mounted) {
+                  Navigator.pop(context); // close dialog
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Ошибка: $e'), backgroundColor: AppTheme.danger),
+                  );
+                }
+              }
             },
             child: Text('Отклонить', style: TextStyle(color: dangerColor)),
           ),
@@ -82,6 +142,33 @@ class _ExpeditorHomeScreenState extends State<ExpeditorHomeScreen> {
   Future<void> _call(String phone) async {
     final uri = Uri(scheme: 'tel', path: phone.replaceAll(' ', ''));
     if (await canLaunchUrl(uri)) launchUrl(uri);
+  }
+
+  Future<void> _openChat(Order o) async {
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+    try {
+      final room = await ChatService.createRoom(
+        orderId: o.id,
+        orderNumber: o.number,
+        expeditorId: o.expeditorId ?? '',
+      );
+      if (mounted) {
+        Navigator.pop(context); // close dialog
+        context.push('/chat/${room.id}');
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // close dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка создания чата: $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -116,7 +203,9 @@ class _ExpeditorHomeScreenState extends State<ExpeditorHomeScreen> {
               ),
             ),
             Expanded(
-              child: RefreshIndicator(
+              child: _loading 
+                ? Center(child: CircularProgressIndicator(color: accentColor))
+                : RefreshIndicator(
                 onRefresh: _refresh,
                 color: accentColor,
                 backgroundColor: surfaceColor,
@@ -139,8 +228,11 @@ class _ExpeditorHomeScreenState extends State<ExpeditorHomeScreen> {
                           },
                           onMap: () =>
                               context.push('/map/${_orders[i].id}'),
-                          onConfirm: () => context.push(
-                              '/expeditor/confirm/${_orders[i].id}'),
+                          onConfirm: () async {
+                            await context.push('/expeditor/confirm/${_orders[i].id}');
+                            _loadData();
+                          },
+                          onChat: () => _openChat(_orders[i]),
                         ),
                       ),
               ),
