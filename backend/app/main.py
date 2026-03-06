@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqladmin import Admin
 
 from app.database import init_db, engine
-from app.routers import auth, employees
+from app.routers import auth, employees, chat, orders
 from app.admin import UserAdmin, OTPCodeAdmin, WarehouseAdmin, admin_auth_backend
 
 app = FastAPI(
@@ -51,3 +51,5 @@ def health():
 # Подключаем роутеры
 app.include_router(auth.router)
 app.include_router(employees.router)
+app.include_router(chat.router)
+app.include_router(orders.router)

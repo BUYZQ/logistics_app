@@ -71,3 +71,96 @@ class WarehouseOut(BaseModel):
     address: str
 
     model_config = {"from_attributes": True}
+
+
+# ── Chat ─────────────────────────────────────────────────────────────────────
+
+class ChatMessageCreate(BaseModel):
+    text: str
+
+    @field_validator("text")
+    @classmethod
+    def not_empty(cls, v):
+        if not v.strip():
+            raise ValueError("Сообщение не может быть пустым")
+        return v.strip()
+
+
+class ChatMessageOut(BaseModel):
+    id: int
+    room_id: int
+    sender_id: int
+    text: str
+    timestamp: datetime
+    is_read: bool
+
+    model_config = {"from_attributes": True}
+
+
+class ChatRoomCreate(BaseModel):
+    """Создаёт или возвращает существующий чат для заказа"""
+    order_id: str
+    order_number: str
+    # ID экспедитора. ID оператора берется из токена создающего
+    expeditor_id: int
+
+
+class ChatRoomOut(BaseModel):
+    id: int
+    order_id: str
+    order_number: str
+    operator_id: int
+    expeditor_id: int
+    created_at: datetime
+    # Последнее сообщение (если есть)
+    last_message: Optional[ChatMessageOut] = None
+    unread_count: int = 0
+    # Имя и ID собеседника (вычисляется в роутере для фронтенда)
+    other_user_name: Optional[str] = None
+    other_user_id: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+class ChatRoomDetailOut(ChatRoomOut):
+    messages: list[ChatMessageOut] = []
+
+
+# ── Orders ───────────────────────────────────────────────────────────────────
+
+from app.models import OrderStatus
+
+class OrderBase(BaseModel):
+    number: str
+    cargoName: str
+    cargoWeight: str
+    fromAddress: str
+    toAddress: str
+    fromLat: float
+    fromLng: float
+    toLat: float
+    toLng: float
+    expeditorId: Optional[str] = None
+    expeditorName: Optional[str] = None
+    expeditorPhone: Optional[str] = None
+    comment: Optional[str] = None
+    attachedPhotos: Optional[str] = None
+
+class OrderCreate(OrderBase):
+    pass
+
+class OrderUpdate(BaseModel):
+    status: Optional[OrderStatus] = None
+    expeditorId: Optional[str] = None
+    expeditorName: Optional[str] = None
+    expeditorPhone: Optional[str] = None
+    comment: Optional[str] = None
+    attachedPhotos: Optional[str] = None
+
+class OrderOut(OrderBase):
+    id: str
+    date: datetime
+    status: OrderStatus
+    operatorId: str
+    operatorName: Optional[str] = None
+
+    model_config = {"from_attributes": True}

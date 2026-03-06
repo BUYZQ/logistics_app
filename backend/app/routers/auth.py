@@ -171,12 +171,10 @@ async def verify_otp(body: VerifyOTPRequest, db: Session = Depends(get_db)):
     return TokenResponse(access_token=token, user=UserOut.model_validate(user))
 
 
-@router.get("/me", response_model=UserOut)
-async def get_me(
+async def get_current_user(
     authorization: Optional[str] = Header(None),
     db: Session = Depends(get_db),
-):
-    """Получить информацию о текущем пользователе по JWT."""
+) -> User:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Требуется авторизация")
     token = authorization[7:]
@@ -186,4 +184,10 @@ async def get_me(
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
+    return user
+
+
+@router.get("/me", response_model=UserOut)
+async def get_me(user: User = Depends(get_current_user)):
+    """Получить информацию о текущем пользователе по JWT."""
     return user
