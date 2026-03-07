@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.yandex.ru")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "465"))
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 EMAIL_FROM = os.getenv("EMAIL_FROM", SMTP_USER)
@@ -66,7 +66,7 @@ async def send_email(to_email: str, subject: str, body: str) -> bool:
             port=SMTP_PORT,
             username=SMTP_USER,
             password=SMTP_PASSWORD,
-            use_tls=True,
+            start_tls=True,
         )
         logger.info(f"Email sent to {to_email}")
         return True
