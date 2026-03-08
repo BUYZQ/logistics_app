@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr, field_validator
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
+import json
 from app.models import UserRole
 
 
@@ -59,6 +60,7 @@ class UserOut(BaseModel):
     role: UserRole
     warehouse_id: Optional[int]
     operator_number: Optional[int]
+    avatar_url: Optional[str] = None
     is_active: bool
     created_at: datetime
 
@@ -103,6 +105,7 @@ class ChatRoomCreate(BaseModel):
     order_number: str
     # ID экспедитора. ID оператора берется из токена создающего
     expeditor_id: int
+    operator_id: Optional[int] = None
 
 
 class ChatRoomOut(BaseModel):
@@ -115,9 +118,9 @@ class ChatRoomOut(BaseModel):
     # Последнее сообщение (если есть)
     last_message: Optional[ChatMessageOut] = None
     unread_count: int = 0
-    # Имя и ID собеседника (вычисляется в роутере для фронтенда)
     other_user_name: Optional[str] = None
     other_user_id: Optional[str] = None
+    other_user_avatar_url: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -143,7 +146,7 @@ class OrderBase(BaseModel):
     expeditorName: Optional[str] = None
     expeditorPhone: Optional[str] = None
     comment: Optional[str] = None
-    attachedPhotos: Optional[str] = None
+    attachedPhotos: Optional[List[str]] = None
 
 class OrderCreate(OrderBase):
     pass
@@ -154,7 +157,7 @@ class OrderUpdate(BaseModel):
     expeditorName: Optional[str] = None
     expeditorPhone: Optional[str] = None
     comment: Optional[str] = None
-    attachedPhotos: Optional[str] = None
+    attachedPhotos: Optional[List[str]] = None
 
 class OrderOut(OrderBase):
     id: str
@@ -162,5 +165,15 @@ class OrderOut(OrderBase):
     status: OrderStatus
     operatorId: str
     operatorName: Optional[str] = None
+
+    @field_validator("attachedPhotos", mode="before")
+    @classmethod
+    def parse_photos(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except:
+                return []
+        return v or []
 
     model_config = {"from_attributes": True}

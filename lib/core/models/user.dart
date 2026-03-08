@@ -30,6 +30,7 @@ class AppUser {
       role: json['role'] == 'operator' ? UserRole.operator : UserRole.expeditor,
       warehouseId: json['warehouse_id'] as int?,
       operatorNumber: json['operator_number'] as int?,
+      avatarUrl: json['avatar_url'] as String?,
     );
   }
 

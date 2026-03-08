@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:logistics_app/app/theme.dart';
 import 'package:logistics_app/core/models/message.dart';
@@ -13,11 +14,19 @@ class ChatListScreen extends StatefulWidget {
 
 class _ChatListScreenState extends State<ChatListScreen> {
   late Future<List<ChatRoom>> _futureRooms;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _loadRooms();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) => _loadRooms());
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 
   void _loadRooms() {

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:logistics_app/app/theme.dart';
 import 'package:logistics_app/core/models/message.dart';
+import 'package:logistics_app/core/services/api_service.dart';
 
 class ChatRoomCard extends StatelessWidget {
   final ChatRoom room;
@@ -36,17 +37,26 @@ class ChatRoomCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: accentColor.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
+                image: room.otherUserAvatarUrl != null
+                    ? DecorationImage(
+                        image: NetworkImage(
+                            '${baseUrl}${room.otherUserAvatarUrl}'),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
               ),
-              child: Center(
-                child: Text(
-                  room.otherUserName.substring(0, 1),
-                  style: TextStyle(
-                    color: accentColor,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
+              child: room.otherUserAvatarUrl == null
+                  ? Center(
+                      child: Text(
+                        room.otherUserName.substring(0, 1),
+                        style: TextStyle(
+                          color: accentColor,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    )
+                  : null,
             ),
             const SizedBox(width: 12),
             Expanded(

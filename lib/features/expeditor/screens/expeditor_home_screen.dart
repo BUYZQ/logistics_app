@@ -54,11 +54,16 @@ class _ExpeditorHomeScreenState extends State<ExpeditorHomeScreen> {
     final isDark = cs.brightness == Brightness.dark;
     final successColor = isDark ? AppTheme.success : AppTheme.lSuccess;
     
-    // Show loading
+    bool loadingShown = false;
+    final navigator = Navigator.of(context, rootNavigator: true);
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
+      useRootNavigator: true,
+      builder: (_) {
+        loadingShown = true;
+        return const Center(child: CircularProgressIndicator());
+      },
     );
     try {
       await OrderService.updateOrderStatus(
@@ -69,8 +74,8 @@ class _ExpeditorHomeScreenState extends State<ExpeditorHomeScreen> {
         expeditorPhone: AuthState.currentUser!.phone ?? '',
       );
       if (mounted) {
-        Navigator.pop(context); // close dialog
-        await _loadData(); // reload
+        if (loadingShown) navigator.pop();
+        await _loadData();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Заявка ${o.number} принята'),
@@ -80,7 +85,7 @@ class _ExpeditorHomeScreenState extends State<ExpeditorHomeScreen> {
       }
     } catch (e) {
       if (mounted) {
-        Navigator.pop(context); // close dialog
+        if (loadingShown) navigator.pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Ошибка: $e'), backgroundColor: AppTheme.danger),
         );
@@ -111,21 +116,26 @@ class _ExpeditorHomeScreenState extends State<ExpeditorHomeScreen> {
           TextButton(
             onPressed: () async {
               Navigator.of(dialogContext).pop();
-              // Show loading
+              bool loadingShown = false;
+              final navigator = Navigator.of(context, rootNavigator: true);
               showDialog(
                 context: context,
                 barrierDismissible: false,
-                builder: (_) => const Center(child: CircularProgressIndicator()),
+                useRootNavigator: true,
+                builder: (_) {
+                  loadingShown = true;
+                  return const Center(child: CircularProgressIndicator());
+                },
               );
               try {
                 await OrderService.updateOrderStatus(o.id, OrderStatus.cancelled);
                 if (mounted) {
-                  Navigator.pop(context); // close loading
+                  if (loadingShown) navigator.pop();
                   await _loadData();
                 }
               } catch (e) {
                 if (mounted) {
-                  Navigator.pop(context); // close dialog
+                  if (loadingShown) navigator.pop();
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Ошибка: $e'), backgroundColor: AppTheme.danger),
                   );
@@ -145,27 +155,33 @@ class _ExpeditorHomeScreenState extends State<ExpeditorHomeScreen> {
   }
 
   Future<void> _openChat(Order o) async {
-    // Show loading dialog
+    bool loadingShown = false;
+    final navigator = Navigator.of(context, rootNavigator: true);
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
+      useRootNavigator: true,
+      builder: (_) {
+        loadingShown = true;
+        return const Center(child: CircularProgressIndicator());
+      },
     );
     try {
       final room = await ChatService.createRoom(
         orderId: o.id,
         orderNumber: o.number,
-        expeditorId: o.expeditorId ?? '',
+        expeditorId: o.expeditorId ?? AuthState.currentUser!.id,
+        operatorId: o.operatorId,
       );
       if (mounted) {
-        Navigator.pop(context); // close dialog
+        if (loadingShown) navigator.pop();
         context.push('/chat/${room.id}');
       }
     } catch (e) {
       if (mounted) {
-        Navigator.pop(context); // close dialog
+        if (loadingShown) navigator.pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка создания чата: $e')),
+          SnackBar(content: Text('Ошибка чата: $e')),
         );
       }
     }

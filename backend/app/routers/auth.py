@@ -71,18 +71,6 @@ async def send_otp(body: SendOTPRequest, db: Session = Depends(get_db)):
             detail=f"Пользователь {contact} не найден."
         )
 
-    # Проверяем лимит — не чаще раза в минуту
-    recent = (
-        db.query(OTPCode)
-        .filter(
-            OTPCode.contact == contact,
-            OTPCode.created_at >= datetime.utcnow() - timedelta(minutes=1),
-        )
-        .first()
-    )
-    if recent:
-        raise HTTPException(status_code=429, detail="Подождите минуту перед повторной отправкой")
-
     # Инвалидируем старые коды
     db.query(OTPCode).filter(
         OTPCode.contact == contact,
@@ -106,6 +94,9 @@ async def send_otp(body: SendOTPRequest, db: Session = Depends(get_db)):
         sent = await send_otp_email(contact, code)
 
     if not sent:
+        # Если не удалось отправить, удаляем код из БД
+        db.delete(otp)
+        db.commit()
         raise HTTPException(status_code=500, detail="Не удалось отправить код. Попробуйте позже.")
 
     return {

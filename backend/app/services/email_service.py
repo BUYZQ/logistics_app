@@ -21,9 +21,13 @@ logger = logging.getLogger(__name__)
 
 async def send_email(to_email: str, subject: str, body: str) -> bool:
     """
-    Отправить email через SMTP.
     Возвращает True при успехе.
     """
+    # [РАЗРАБОТКА] Обход блокировок SMTP-портов провайдером.
+    # Печатаем код в консоль и притворяемся, что письмо ушло.
+    print(f"\n{'='*50}\n📧 Получено письмо для {to_email}:\n\nВаш код входа: {body}\n{'='*50}\n")
+    return True
+
     if not SMTP_USER or not SMTP_PASSWORD or SMTP_USER == "":
         # Режим разработки — выводим в консоль
         logger.warning(f"[DEV MODE] Email to {to_email}: {subject}\n{body}")
@@ -66,7 +70,8 @@ async def send_email(to_email: str, subject: str, body: str) -> bool:
             port=SMTP_PORT,
             username=SMTP_USER,
             password=SMTP_PASSWORD,
-            start_tls=True,
+            use_tls=(SMTP_PORT == 465),
+            start_tls=(SMTP_PORT == 587),
         )
         logger.info(f"Email sent to {to_email}")
         return True

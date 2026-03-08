@@ -120,7 +120,10 @@ class _OrdersListScreenState extends State<OrdersListScreen>
                       ),
                     ),
                     GestureDetector(
-                      onTap: () => context.push('/orders/create'),
+                      onTap: () async {
+                        await context.push('/orders/create');
+                        if (mounted) _loadData();
+                      },
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 10),

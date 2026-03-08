@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Для Android-эмулятора: 10.0.2.2:8000
 /// Для реального устройства: IP компьютера в сети, например 192.168.1.100:8000
 /// Для Render: https://logistics-app-yjqp.onrender.com
-const String _baseUrl = 'https://logistics-app-yjqp.onrender.com';
+const String baseUrl = 'http://192.168.101.7:8000';
 
 const String _tokenKey = 'auth_token';
 
@@ -41,12 +41,14 @@ class ApiService {
 
   static Map<String, String> get _headers => {
         'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
       };
 
   static Future<Map<String, String>> _authHeaders() async {
     final token = await getToken();
     return {
       'Content-Type': 'application/json',
+      'ngrok-skip-browser-warning': 'true',
       if (token != null) 'Authorization': 'Bearer $token',
     };
   }
@@ -67,11 +69,11 @@ class ApiService {
   static Future<void> sendOtp(String contact) async {
     final resp = await http
         .post(
-          Uri.parse('$_baseUrl/auth/send-otp'),
+          Uri.parse('$baseUrl/auth/send-otp'),
           headers: _headers,
           body: jsonEncode({'contact': contact}),
         )
-        .timeout(const Duration(seconds: 15));
+        .timeout(const Duration(seconds: 45)); // Увеличено для Render
     _parse(resp);
   }
 
@@ -80,11 +82,11 @@ class ApiService {
       String contact, String code) async {
     final resp = await http
         .post(
-          Uri.parse('$_baseUrl/auth/verify-otp'),
+          Uri.parse('$baseUrl/auth/verify-otp'),
           headers: _headers,
           body: jsonEncode({'contact': contact, 'code': code}),
         )
-        .timeout(const Duration(seconds: 15));
+        .timeout(const Duration(seconds: 30));
     return _parse(resp);
   }
 
@@ -92,10 +94,31 @@ class ApiService {
   static Future<Map<String, dynamic>> getMe() async {
     final resp = await http
         .get(
-          Uri.parse('$_baseUrl/auth/me'),
+          Uri.parse('$baseUrl/auth/me'),
           headers: await _authHeaders(),
         )
         .timeout(const Duration(seconds: 10));
     return _parse(resp);
+  }
+
+  /// Загрузить аватар пользователя
+  static Future<String> uploadAvatar(String filePath) async {
+    final uri = Uri.parse('$baseUrl/upload/avatar');
+    final req = http.MultipartRequest('POST', uri);
+    
+    final auth = await _authHeaders();
+    req.headers.addAll(auth);
+
+    req.files.add(await http.MultipartFile.fromPath('file', filePath));
+
+    final resp = await req.send().timeout(const Duration(seconds: 60));
+    final respStr = await resp.stream.bytesToString();
+    
+    if (resp.statusCode >= 400) {
+      throw ApiException(resp.statusCode, 'Не удалось загрузить фото');
+    }
+    
+    final json = jsonDecode(respStr);
+    return json['avatarUrl'] as String;
   }
 }

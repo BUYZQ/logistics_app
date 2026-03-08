@@ -1,7 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AppTheme {
+  // Наблюдатель за текущей темой
+  static final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.system);
+
+  // Загрузка сохраненной темы
+  static Future<void> loadTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    final idx = prefs.getInt('app_theme_mode');
+    if (idx != null && idx >= 0 && idx < ThemeMode.values.length) {
+      themeNotifier.value = ThemeMode.values[idx];
+    }
+  }
+
+  // Сохранение и применение темы
+  static Future<void> setTheme(ThemeMode mode) async {
+    themeNotifier.value = mode;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('app_theme_mode', mode.index);
+  }
+
   // ── Dark palette ──────────────────────────────────────────────────────────
   static const Color background = Color(0xFF0D0D0F);
   static const Color surface = Color(0xFF1A1A1F);

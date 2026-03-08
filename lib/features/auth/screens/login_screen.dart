@@ -55,6 +55,7 @@ class _LoginScreenState extends State<LoginScreen>
 
   // ── Отправить OTP ─────────────────────────────────────────
   Future<void> _sendOtp() async {
+    if (_loading) return;
     final contact = _contactCtrl.text.trim();
     if (contact.isEmpty) {
       setState(() => _error = 'Введите номер телефона или email');
@@ -74,7 +75,8 @@ class _LoginScreenState extends State<LoginScreen>
       });
     } on ApiException catch (e) {
       setState(() { _error = e.message; _loading = false; });
-    } catch (_) {
+    } catch (e) {
+      print('Network Error: $e');
       setState(() {
         _error = 'Не удалось подключиться к серверу.\nПроверьте интернет-соединение.';
         _loading = false;
@@ -84,6 +86,7 @@ class _LoginScreenState extends State<LoginScreen>
 
   // ── Подтвердить OTP ───────────────────────────────────────
   Future<void> _verifyOtp() async {
+    if (_loading) return;
     final code = _codeCtrl.text.trim();
     if (code.length != 6) {
       setState(() => _error = 'Введите 6-значный код');

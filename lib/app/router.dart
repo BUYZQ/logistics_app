@@ -65,25 +65,37 @@ GoRouter buildRouter() {
       ),
 
       // ─── Shell (bottom nav tabs) ───────────────────────────────────────────
-      ShellRoute(
-        navigatorKey: _shellNavigatorKey,
-        builder: (context, state, child) => ShellScaffold(child: child),
-        routes: [
-          GoRoute(
-            path: '/orders',
-            builder: (_, __) => const OrdersListScreen(),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            ShellScaffold(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/orders',
+                builder: (_, __) => const OrdersListScreen(),
+              ),
+              GoRoute(
+                path: '/expeditor',
+                builder: (_, __) => const ExpeditorHomeScreen(),
+              ),
+            ],
           ),
-          GoRoute(
-            path: '/expeditor',
-            builder: (_, __) => const ExpeditorHomeScreen(),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/chat',
+                builder: (_, __) => const ChatListScreen(),
+              ),
+            ],
           ),
-          GoRoute(
-            path: '/chat',
-            builder: (_, __) => const ChatListScreen(),
-          ),
-          GoRoute(
-            path: '/profile',
-            builder: (_, __) => const ProfileScreen(),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/profile',
+                builder: (_, __) => const ProfileScreen(),
+              ),
+            ],
           ),
         ],
       ),

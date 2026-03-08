@@ -5,6 +5,7 @@ import 'package:logistics_app/app/theme.dart';
 import 'package:logistics_app/core/models/message.dart';
 import 'package:logistics_app/core/models/user.dart';
 import 'package:logistics_app/core/services/chat_service.dart';
+import 'package:logistics_app/core/services/api_service.dart';
 import 'package:logistics_app/features/chat/widgets/message_bubble.dart';
 import 'package:logistics_app/features/chat/widgets/date_divider.dart';
 import 'package:logistics_app/features/chat/widgets/chat_input_bar.dart';
@@ -72,6 +73,8 @@ class _ChatScreenState extends State<ChatScreen> {
     _timer?.cancel();
     _textCtrl.dispose();
     _scrollCtrl.dispose();
+    // Refresh unread count for ShellScaffold
+    ChatService.getRooms().catchError((_) => []);
     super.dispose();
   }
 
@@ -136,13 +139,45 @@ class _ChatScreenState extends State<ChatScreen> {
               color: primaryText, size: 18),
           onPressed: () => context.pop(),
         ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        title: Row(
           children: [
-            Text(_room!.otherUserName,
-                style: TextStyle(fontSize: 16, color: primaryText)),
-            Text(_room!.orderNumber,
-                style: TextStyle(fontSize: 11, color: secondaryText)),
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: AppTheme.accent.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+                image: _room!.otherUserAvatarUrl != null
+                    ? DecorationImage(
+                        image: NetworkImage(
+                            '${baseUrl}${_room!.otherUserAvatarUrl}'),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+              child: _room!.otherUserAvatarUrl == null
+                  ? Center(
+                      child: Text(
+                        _room!.otherUserName.substring(0, 1),
+                        style: const TextStyle(
+                          color: AppTheme.accent,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(_room!.otherUserName,
+                    style: TextStyle(fontSize: 16, color: primaryText)),
+                Text(_room!.orderNumber,
+                    style: TextStyle(fontSize: 11, color: secondaryText)),
+              ],
+            ),
           ],
         ),
         actions: [

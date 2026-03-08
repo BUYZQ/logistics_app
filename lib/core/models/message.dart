@@ -30,6 +30,7 @@ class ChatRoom {
   final String orderNumber;
   final String otherUserName;
   final String otherUserId;
+  final String? otherUserAvatarUrl;
   final List<ChatMessage> messages;
   final int unreadCount;
   final ChatMessage? lastMessage;
@@ -40,6 +41,7 @@ class ChatRoom {
     required this.orderNumber,
     required this.otherUserName,
     required this.otherUserId,
+    this.otherUserAvatarUrl,
     this.messages = const [],
     this.unreadCount = 0,
     this.lastMessage,
@@ -64,6 +66,7 @@ class ChatRoom {
       orderNumber: json['order_number'] ?? '',
       otherUserName: json['other_user_name'] ?? 'Неизвестно',
       otherUserId: json['other_user_id']?.toString() ?? '',
+      otherUserAvatarUrl: json['other_user_avatar_url'] as String?,
       unreadCount: json['unread_count'] as int? ?? 0,
       lastMessage: last,
       messages: msgs,

@@ -1,5 +1,6 @@
 import logging
 import uuid
+import json
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -66,7 +67,7 @@ async def create_order(
         expeditorName=body.expeditorName,
         expeditorPhone=body.expeditorPhone,
         comment=body.comment,
-        attachedPhotos=body.attachedPhotos,
+        attachedPhotos=json.dumps(body.attachedPhotos) if body.attachedPhotos else None,
     )
 
     db.add(new_order)
@@ -101,7 +102,7 @@ async def update_order_status(
     if body.comment is not None:
         order.comment = body.comment
     if body.attachedPhotos is not None:
-        order.attachedPhotos = body.attachedPhotos
+        order.attachedPhotos = json.dumps(body.attachedPhotos)
 
     db.commit()
     db.refresh(order)

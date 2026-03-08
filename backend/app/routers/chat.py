@@ -37,8 +37,15 @@ def get_user_rooms(
         room_data = ChatRoomOut.model_validate(room)
         room_data.last_message = ChatMessageOut.model_validate(last_msg) if last_msg else None
         room_data.unread_count = unread
-        room_data.other_user_name = other_user.name
-        room_data.other_user_id = str(other_user.id)
+        
+        if other_user:
+            room_data.other_user_name = other_user.name
+            room_data.other_user_id = str(other_user.id)
+            room_data.other_user_avatar_url = other_user.avatar_url
+        else:
+            room_data.other_user_name = "Удаленный пользователь"
+            room_data.other_user_id = ""
+            room_data.other_user_avatar_url = None
         
         result.append(room_data)
 
@@ -52,36 +59,55 @@ def create_or_get_room(
     current_user: User = Depends(get_current_user)
 ):
     """Создает новый чат или возвращает существующий для данного заказа"""
-    if current_user.role != UserRole.operator:
-        raise HTTPException(status_code=403, detail="Только оператор может инициировать чат")
+    # Determine operator_id and expeditor_id
+    operator_id = current_user.id if current_user.role == UserRole.operator else room_in.operator_id
+    expeditor_id = current_user.id if current_user.role == UserRole.expeditor else room_in.expeditor_id
+
+    if not operator_id or not expeditor_id:
+        raise HTTPException(
+            status_code=400, 
+            detail="Необходимо указать оператора и экспедитора для начала чата"
+        )
 
     # Ищем существующий чат
     existing_room = db.query(ChatRoom).filter(
         ChatRoom.order_id == room_in.order_id,
-        ChatRoom.operator_id == current_user.id,
-        ChatRoom.expeditor_id == room_in.expeditor_id
+        ChatRoom.operator_id == operator_id,
+        ChatRoom.expeditor_id == expeditor_id
     ).first()
 
     if existing_room:
+        other_user = existing_room.expeditor if current_user.role == UserRole.operator else existing_room.operator
+        unread = db.query(ChatMessage).filter(
+            ChatMessage.room_id == existing_room.id,
+            ChatMessage.sender_id != current_user.id,
+            ChatMessage.is_read == False
+        ).count()
+
         room_data = ChatRoomOut.model_validate(existing_room)
-        room_data.other_user_name = existing_room.expeditor.name
-        room_data.other_user_id = str(existing_room.expeditor_id)
+        room_data.other_user_name = other_user.name if other_user else "Удаленный пользователь"
+        room_data.other_user_id = str(other_user.id) if other_user else ""
+        room_data.other_user_avatar_url = getattr(other_user, 'avatar_url', None) if other_user else None
+        room_data.unread_count = unread
         return room_data
 
     # Создаем новый
     new_room = ChatRoom(
         order_id=room_in.order_id,
         order_number=room_in.order_number,
-        operator_id=current_user.id,
-        expeditor_id=room_in.expeditor_id
+        operator_id=operator_id,
+        expeditor_id=expeditor_id
     )
     db.add(new_room)
     db.commit()
     db.refresh(new_room)
 
+    other_user = new_room.expeditor if current_user.role == UserRole.operator else new_room.operator
     room_data = ChatRoomOut.model_validate(new_room)
-    room_data.other_user_name = new_room.expeditor.name
-    room_data.other_user_id = str(new_room.expeditor_id)
+    room_data.other_user_name = other_user.name if other_user else "Удаленный пользователь"
+    room_data.other_user_id = str(other_user.id) if other_user else ""
+    room_data.other_user_avatar_url = getattr(other_user, 'avatar_url', None) if other_user else None
+    room_data.unread_count = 0
     return room_data
 
 
@@ -116,9 +142,11 @@ def get_room_messages(
     other_user = room.expeditor if current_user.role == UserRole.operator else room.operator
     
     result = ChatRoomDetailOut.model_validate(room)
-    result.other_user_name = other_user.name
-    result.other_user_id = str(other_user.id)
+    result.other_user_name = other_user.name if other_user else "Удаленный пользователь"
+    result.other_user_id = str(other_user.id) if other_user else ""
+    result.other_user_avatar_url = getattr(other_user, 'avatar_url', None) if other_user else None
     result.messages = [ChatMessageOut.model_validate(m) for m in messages]
+    result.unread_count = 0 # since we marked them as read
     
     return result
 

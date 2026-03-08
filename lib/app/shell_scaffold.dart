@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:logistics_app/app/theme.dart';
@@ -5,21 +6,35 @@ import 'package:logistics_app/core/models/user.dart';
 import 'package:logistics_app/core/services/chat_service.dart';
 
 class ShellScaffold extends StatefulWidget {
-  final Widget child;
-  const ShellScaffold({super.key, required this.child});
+  final StatefulNavigationShell navigationShell;
+  const ShellScaffold({super.key, required this.navigationShell});
 
   @override
   State<ShellScaffold> createState() => _ShellScaffoldState();
 }
 
 class _ShellScaffoldState extends State<ShellScaffold> {
-  int _selectedIndex = 0;
   int _unreadCount = 0;
 
   @override
   void initState() {
     super.initState();
     _loadUnread();
+    ChatService.unreadCountNotifier.addListener(_onUnreadChanged);
+  }
+
+  void _onUnreadChanged() {
+    if (mounted) {
+      setState(() {
+        _unreadCount = ChatService.unreadCountNotifier.value;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    ChatService.unreadCountNotifier.removeListener(_onUnreadChanged);
+    super.dispose();
   }
 
   Future<void> _loadUnread() async {
@@ -39,30 +54,24 @@ class _ShellScaffoldState extends State<ShellScaffold> {
 
     if (isOperator) {
       return [
-        _NavItem(icon: Icons.list_alt_rounded, label: 'Заявки', path: '/orders'),
-        _NavItem(icon: Icons.chat_bubble_outline_rounded, label: 'Чат', path: '/chat', badge: unread),
-        _NavItem(icon: Icons.person_outline_rounded, label: 'Профиль', path: '/profile'),
+        _NavItem(icon: Icons.list_alt_rounded, label: 'Заявки'),
+        _NavItem(icon: Icons.chat_bubble_outline_rounded, label: 'Чат', badge: unread),
+        _NavItem(icon: Icons.person_outline_rounded, label: 'Профиль'),
       ];
     } else {
       return [
-        _NavItem(icon: Icons.inventory_2_outlined, label: 'Заявки', path: '/expeditor'),
-        _NavItem(icon: Icons.chat_bubble_outline_rounded, label: 'Чат', path: '/chat', badge: unread),
-        _NavItem(icon: Icons.person_outline_rounded, label: 'Профиль', path: '/profile'),
+        _NavItem(icon: Icons.inventory_2_outlined, label: 'Заявки'),
+        _NavItem(icon: Icons.chat_bubble_outline_rounded, label: 'Чат', badge: unread),
+        _NavItem(icon: Icons.person_outline_rounded, label: 'Профиль'),
       ];
     }
   }
 
   void _onTap(int index) {
-    setState(() => _selectedIndex = index);
-    context.go(_items[index].path);
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final location = GoRouterState.of(context).matchedLocation;
-    final idx = _items.indexWhere((i) => i.path == location);
-    if (idx != -1) _selectedIndex = idx;
+    widget.navigationShell.goBranch(
+      index,
+      initialLocation: index == widget.navigationShell.currentIndex,
+    );
   }
 
   @override
@@ -76,7 +85,7 @@ class _ShellScaffoldState extends State<ShellScaffold> {
     final dangerColor = isDark ? AppTheme.danger : AppTheme.lDanger;
 
     return Scaffold(
-      body: widget.child,
+      body: widget.navigationShell,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: surfaceColor,
@@ -88,7 +97,7 @@ class _ShellScaffoldState extends State<ShellScaffold> {
             child: Row(
               children: List.generate(_items.length, (i) {
                 final item = _items[i];
-                final selected = _selectedIndex == i;
+                final selected = widget.navigationShell.currentIndex == i;
                 return Expanded(
                   child: GestureDetector(
                     onTap: () => _onTap(i),
@@ -167,13 +176,11 @@ class _ShellScaffoldState extends State<ShellScaffold> {
 class _NavItem {
   final IconData icon;
   final String label;
-  final String path;
   final int badge;
 
   const _NavItem({
     required this.icon,
     required this.label,
-    required this.path,
     this.badge = 0,
   });
 }

@@ -71,21 +71,26 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             onPressed: () async {
               Navigator.pop(context);
               if (_order != null) {
-                // Show loading
+                bool loadingShown = false;
+                final navigator = Navigator.of(context, rootNavigator: true);
                 showDialog(
                   context: context,
                   barrierDismissible: false,
-                  builder: (_) => const Center(child: CircularProgressIndicator()),
+                  useRootNavigator: true,
+                  builder: (_) {
+                    loadingShown = true;
+                    return const Center(child: CircularProgressIndicator());
+                  },
                 );
                 try {
                   await OrderService.updateOrderStatus(_order!.id, OrderStatus.cancelled);
                   if (mounted) {
-                    Navigator.pop(context); // close dialog
+                    if (loadingShown) navigator.pop();
                     _load();
                   }
                 } catch (e) {
                   if (mounted) {
-                    Navigator.pop(context); // close dialog
+                    if (loadingShown) navigator.pop();
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Ошибка: $e'), backgroundColor: AppTheme.danger),
                     );

@@ -1,12 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:logistics_app/app/theme.dart';
 import 'package:logistics_app/core/models/user.dart';
 import 'package:logistics_app/core/services/api_service.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  bool _isUploadingAvatar = false;
+
+  Future<void> _pickAvatar() async {
+    final picker = ImagePicker();
+    final file = await picker.pickImage(source: ImageSource.gallery, maxWidth: 800, maxHeight: 800);
+    if (file == null) return;
+
+    setState(() => _isUploadingAvatar = true);
+    try {
+      final newUrl = await ApiService.uploadAvatar(file.path);
+      // Create a fresh user with the new avatarURL
+      final oldUser = AuthState.currentUser!;
+      AuthState.currentUser = AppUser(
+        id: oldUser.id,
+        name: oldUser.name,
+        phone: oldUser.phone,
+        email: oldUser.email,
+        role: oldUser.role,
+        warehouseId: oldUser.warehouseId,
+        operatorNumber: oldUser.operatorNumber,
+        avatarUrl: newUrl,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка загрузки: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploadingAvatar = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,24 +71,37 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(height: 8),
             Row(
               children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: accentColor.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                        color: accentColor.withValues(alpha: 0.3), width: 2),
-                  ),
-                  child: Center(
-                    child: Text(
-                      user.name.substring(0, 1),
-                      style: TextStyle(
-                        color: accentColor,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w700,
-                      ),
+                GestureDetector(
+                  onTap: _isUploadingAvatar ? null : _pickAvatar,
+                  child: Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: accentColor.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                          color: accentColor.withValues(alpha: 0.3), width: 2),
+                      image: user.avatarUrl != null
+                          ? DecorationImage(
+                              image: NetworkImage('${baseUrl}${user.avatarUrl}'),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
                     ),
+                    child: _isUploadingAvatar
+                        ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+                        : (user.avatarUrl == null
+                            ? Center(
+                                child: Text(
+                                  user.name.substring(0, 1),
+                                  style: TextStyle(
+                                    color: accentColor,
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              )
+                            : null),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -111,6 +165,12 @@ class ProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             _SettingTile(
+              icon: Icons.color_lens_outlined,
+              label: 'Тема оформления',
+              onTap: () => _showThemePicker(context),
+            ),
+            const SizedBox(height: 8),
+            _SettingTile(
               icon: Icons.info_outline_rounded,
               label: 'О приложении',
               onTap: () => _showAbout(context),
@@ -161,6 +221,65 @@ class ProfileScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  void _showThemePicker(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = cs.brightness == Brightness.dark;
+    final bgColor = isDark ? AppTheme.surfaceHigher : AppTheme.lSurface;
+    final primaryText = isDark ? AppTheme.textPrimary : AppTheme.lTextPrimary;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: bgColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 20),
+              Text(
+                'Тема оформления',
+                style: TextStyle(
+                  color: primaryText,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.brightness_auto, color: Colors.grey),
+                title: Text('Системная', style: TextStyle(color: primaryText)),
+                onTap: () {
+                  AppTheme.setTheme(ThemeMode.system);
+                  Navigator.pop(ctx);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.light_mode, color: Colors.amber),
+                title: Text('Светлая', style: TextStyle(color: primaryText)),
+                onTap: () {
+                  AppTheme.setTheme(ThemeMode.light);
+                  Navigator.pop(ctx);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.dark_mode, color: Colors.indigoAccent),
+                title: Text('Тёмная', style: TextStyle(color: primaryText)),
+                onTap: () {
+                  AppTheme.setTheme(ThemeMode.dark);
+                  Navigator.pop(ctx);
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
     );
   }
 

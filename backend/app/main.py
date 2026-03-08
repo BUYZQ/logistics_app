@@ -57,12 +57,20 @@ def health():
     return {"status": "healthy"}
 
 
+from fastapi.staticfiles import StaticFiles
+import os
+
+os.makedirs("uploads/avatars", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     return Response(status_code=204)
 
 # Подключаем роутеры
+from app.routers import upload
 app.include_router(auth.router)
 app.include_router(employees.router)
 app.include_router(chat.router)
 app.include_router(orders.router)
+app.include_router(upload.router)

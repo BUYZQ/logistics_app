@@ -24,6 +24,7 @@ class _ExpeditorCardState extends State<ExpeditorCard> {
         orderId: widget.order.id,
         orderNumber: widget.order.number,
         expeditorId: widget.order.expeditorId ?? '',
+        operatorId: widget.order.operatorId,
       );
       if (mounted) {
         context.push('/chat/${room.id}');

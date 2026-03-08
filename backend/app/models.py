@@ -32,6 +32,7 @@ class User(Base):
     warehouse_id = Column(Integer, ForeignKey("warehouses.id"), nullable=True)
     # Порядковый номер оператора (автоматически, только для операторов)
     operator_number = Column(Integer, nullable=True)
+    avatar_url = Column(String(500), nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     created_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
