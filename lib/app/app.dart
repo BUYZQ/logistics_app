@@ -13,7 +13,7 @@ class App extends StatelessWidget {
       valueListenable: AppTheme.themeNotifier,
       builder: (context, currentMode, _) {
         return MaterialApp.router(
-          title: 'Некст',
+          title: 'Проект-Инвест',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,

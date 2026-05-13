@@ -41,7 +41,7 @@ async def send_email(to_email: str, subject: str, body: str) -> bool:
 
     html_body = f"""
     <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto;">
-      <h2 style="color: #3B7EF6;">Некст — Авторизация</h2>
+      <h2 style="color: #3B7EF6;">Проект-Инвест — Авторизация</h2>
       <p>Ваш код подтверждения:</p>
       <div style="
         background: #f0f4ff;
@@ -86,6 +86,6 @@ async def send_email(to_email: str, subject: str, body: str) -> bool:
 async def send_otp_email(to_email: str, code: str) -> bool:
     return await send_email(
         to_email=to_email,
-        subject="Код подтверждения — Некст",
+        subject="Код подтверждения — Проект-Инвест",
         body=code,
     )

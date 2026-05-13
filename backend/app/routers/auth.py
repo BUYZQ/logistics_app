@@ -87,7 +87,7 @@ async def send_otp(body: SendOTPRequest, db: Session = Depends(get_db)):
     db.commit()
 
     # Отправляем
-    message = f"Некст: ваш код входа {code}. Действителен {OTP_TTL_MINUTES} минут."
+    message = f"Проект-Инвест: ваш код входа {code}. Действителен {OTP_TTL_MINUTES} минут."
     if contact_type == "phone":
         sent = await send_sms(contact, message)
     else:

@@ -1,5 +1,5 @@
 """
-Некст — FastAPI Backend
+Проект-Инвест — FastAPI Backend
 Точка входа приложения.
 """
 from fastapi import FastAPI, Response
@@ -11,7 +11,7 @@ from app.routers import auth, employees, chat, orders
 from app.admin import UserAdmin, OTPCodeAdmin, WarehouseAdmin, admin_auth_backend
 
 app = FastAPI(
-    title="Некст — API",
+    title="Проект-Инвест — API",
     description="Backend для системы управления логистикой пищевых товаров",
     version="1.0.0",
 )
@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent
 admin = Admin(
     app, 
     engine, 
-    title="Некст — База данных", 
+    title="База данных",
     authentication_backend=admin_auth_backend, 
     templates_dir=str(BASE_DIR.parent / "templates")
 )
@@ -49,7 +49,7 @@ def startup():
 
 @app.get("/", tags=["Health"])
 def root():
-    return {"status": "ok", "service": "Некст API", "version": "1.0.0"}
+    return {"status": "ok", "service": "Проект-Инвест API", "version": "1.0.0"}
 
 
 @app.get("/health", tags=["Health"])

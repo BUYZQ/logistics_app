@@ -214,7 +214,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 40),
             Center(
               child: Text(
-                'v1.0.0 · ООО «Некст» · 2026',
+                'v1.0.0 · ООО «Проект-Инвест» · 2026',
                 style: TextStyle(color: secondaryText, fontSize: 12),
               ),
             ),
@@ -300,7 +300,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Icon(Icons.local_shipping_rounded, color: accentColor, size: 20),
             const SizedBox(width: 8),
-            Text('Некст',
+            Text('Проект-Инвест',
                 style: TextStyle(color: primaryText, fontSize: 16)),
           ],
         ),

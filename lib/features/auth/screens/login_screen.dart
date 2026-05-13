@@ -204,7 +204,7 @@ class _LoginScreenState extends State<LoginScreen>
                 const Spacer(flex: 3),
                 Center(
                   child: Text(
-                    'ООО «Некст» © 2026',
+                    'ООО «Проект-Инвест» © 2026',
                     style: TextStyle(color: secondaryText, fontSize: 12),
                   ),
                 ),
@@ -580,7 +580,7 @@ class _LogoBrand extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         Text(
-          'Некст',
+          'Проект-Инвест',
           style: TextStyle(
             color: primaryText,
             fontSize: 28,
