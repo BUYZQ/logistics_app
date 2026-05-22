@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Для Android-эмулятора: 10.0.2.2:8000
 /// Для реального устройства: IP компьютера в сети, например 192.168.1.100:8000
 /// Для Render: https://logistics-app-yjqp.onrender.com
-const String baseUrl = 'http://192.168.101.7:8000';
+const String baseUrl = 'http://192.168.101.8:8000';
 
 const String _tokenKey = 'auth_token';
 

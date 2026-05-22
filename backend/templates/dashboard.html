@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Проект-Инвест — Дашборд</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── Dark theme (default) ── */
+    [data-theme="dark"] {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --border:    #30363d;
+      --text:      #e6edf3;
+      --muted:     #8b949e;
+      --accent:    #4f8ef7;
+      --shadow:    rgba(0,0,0,0.4);
+      --grid:      rgba(48,54,61,0.6);
+      --row-hover: rgba(255,255,255,0.02);
+      --td-border: rgba(48,54,61,0.5);
+      --pie-border:#161b22;
+      --toggle-bg: #30363d;
+      --toggle-icon: "☀️";
+    }
+
+    /* ── Light theme ── */
+    [data-theme="light"] {
+      --bg:        #f6f8fa;
+      --surface:   #ffffff;
+      --border:    #d0d7de;
+      --text:      #1f2328;
+      --muted:     #656d76;
+      --accent:    #0969da;
+      --shadow:    rgba(31,35,40,0.12);
+      --grid:      rgba(208,215,222,0.7);
+      --row-hover: rgba(31,35,40,0.04);
+      --td-border: rgba(208,215,222,0.6);
+      --pie-border:#ffffff;
+      --toggle-bg: #e8f3ff;
+      --toggle-icon: "🌙";
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      transition: background .25s, color .25s;
+    }
+
+    /* ── Layout ── */
+    .layout { display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 220px; flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      padding: 24px 0; position: sticky; top: 0; height: 100vh;
+      transition: background .25s, border-color .25s;
+    }
+    .sidebar-logo { padding: 0 20px 24px; border-bottom: 1px solid var(--border); }
+    .sidebar-logo .brand { font-size: 15px; font-weight: 700; color: var(--accent); letter-spacing: .4px; }
+    .sidebar-logo .sub   { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    .sidebar nav { margin-top: 16px; flex: 1; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 20px; font-size: 13px; color: var(--muted);
+      cursor: pointer; border-left: 3px solid transparent;
+      transition: all .15s;
+    }
+    .nav-item.active, .nav-item:hover {
+      color: var(--text);
+      background: rgba(79,142,247,.08);
+      border-left-color: var(--accent);
+    }
+    [data-theme="light"] .nav-item.active,
+    [data-theme="light"] .nav-item:hover {
+      background: rgba(9,105,218,.08);
+    }
+    .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+    .sidebar-footer {
+      padding: 20px; border-top: 1px solid var(--border);
+      font-size: 11px; color: var(--muted);
+    }
+    .sidebar-footer a { color: var(--accent); text-decoration: none; display: block; margin-top: 6px; font-size: 12px; }
+    .sidebar-footer a:hover { text-decoration: underline; }
+
+    /* ── Main ── */
+    .main { flex: 1; padding: 32px 36px; overflow-y: auto; }
+
+    /* ── Page header ── */
+    .page-header {
+      display: flex; align-items: flex-start;
+      justify-content: space-between; margin-bottom: 28px;
+    }
+    .page-header h1 { font-size: 22px; font-weight: 700; }
+    .page-header p  { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+    /* ── Theme toggle button ── */
+    .theme-toggle {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 14px; border-radius: 20px; cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--toggle-bg);
+      color: var(--text); font-size: 13px; font-weight: 500;
+      transition: all .2s; flex-shrink: 0;
+      user-select: none;
+    }
+    .theme-toggle:hover { box-shadow: 0 2px 8px var(--shadow); transform: translateY(-1px); }
+    .theme-toggle .toggle-track {
+      width: 34px; height: 18px; border-radius: 9px;
+      background: var(--border); position: relative;
+      transition: background .25s;
+    }
+    [data-theme="light"] .theme-toggle .toggle-track { background: var(--accent); }
+    .theme-toggle .toggle-knob {
+      position: absolute; top: 2px; left: 2px;
+      width: 14px; height: 14px; border-radius: 50%;
+      background: white; transition: transform .25s;
+      box-shadow: 0 1px 3px rgba(0,0,0,.3);
+    }
+    [data-theme="light"] .theme-toggle .toggle-knob { transform: translateX(16px); }
+
+    /* ── KPI cards ── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(185px,1fr));
+      gap: 16px; margin-bottom: 28px;
+    }
+    .kpi-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 18px 20px;
+      position: relative; overflow: hidden;
+      transition: transform .15s, box-shadow .15s, background .25s, border-color .25s;
+    }
+    .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px var(--shadow); }
+    .kpi-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      border-radius: 14px 14px 0 0;
+    }
+    .kpi-card.blue::before   { background: linear-gradient(90deg,#4f8ef7,#a371f7); }
+    .kpi-card.green::before  { background: linear-gradient(90deg,#3fb950,#1f9d44); }
+    .kpi-card.orange::before { background: linear-gradient(90deg,#f78166,#e3513a); }
+    .kpi-card.yellow::before { background: linear-gradient(90deg,#d29922,#b07d11); }
+    .kpi-card.purple::before { background: linear-gradient(90deg,#a371f7,#7c4dff); }
+    .kpi-card.red::before    { background: linear-gradient(90deg,#f85149,#cc1f1f); }
+    .kpi-card.teal::before   { background: linear-gradient(90deg,#56d364,#1f9d44); }
+    .kpi-card.pink::before   { background: linear-gradient(90deg,#ec6cb9,#cd54a2); }
+
+    .kpi-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; }
+    .kpi-value { font-size: 32px; font-weight: 700; margin-top: 6px; line-height: 1; }
+    .kpi-sub   { font-size: 11px; color: var(--muted); margin-top: 6px; }
+    .kpi-badge {
+      display: inline-block; margin-top: 8px; padding: 2px 8px;
+      border-radius: 20px; font-size: 11px; font-weight: 600;
+    }
+    .badge-green  { background: rgba(63,185,80,.15);  color: #3fb950; }
+    .badge-orange { background: rgba(247,129,102,.15); color: #f78166; }
+    .badge-yellow { background: rgba(210,153,34,.15);  color: #d29922; }
+    .badge-red    { background: rgba(248,81,73,.15);   color: #f85149; }
+    .badge-blue   { background: rgba(79,142,247,.15);  color: #4f8ef7; }
+
+    [data-theme="light"] .badge-blue { background: rgba(9,105,218,.10); color: #0969da; }
+
+    /* ── Chart cards ── */
+    .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px; }
+    .chart-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 22px;
+      transition: background .25s, border-color .25s;
+    }
+    .chart-card h3 { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .chart-card p  { font-size: 11px; color: var(--muted); margin-bottom: 16px; }
+    .chart-wrap { position: relative; }
+
+    /* ── Status breakdown ── */
+    .status-list { margin-top: 4px; }
+    .status-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 0; border-bottom: 1px solid var(--border);
+    }
+    .status-row:last-child { border-bottom: none; }
+    .status-dot  { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .status-name { font-size: 13px; color: var(--muted); margin-left: 10px; flex: 1; }
+    .status-count { font-size: 13px; font-weight: 600; }
+    .status-bar-wrap { flex: 1; margin: 0 12px; height: 4px; background: var(--border); border-radius: 4px; overflow: hidden; }
+    .status-bar  { height: 100%; border-radius: 4px; }
+
+    /* ── Table card ── */
+    .table-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 22px; margin-bottom: 28px;
+      transition: background .25s, border-color .25s;
+    }
+    .table-card h3 { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .table-card p  { font-size: 11px; color: var(--muted); margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th {
+      text-align: left; padding: 8px 12px;
+      font-size: 11px; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .6px;
+      border-bottom: 1px solid var(--border);
+    }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--td-border); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--row-hover); }
+
+    /* ── Footer ── */
+    .page-footer { font-size: 11px; color: var(--muted); margin-top: 16px; text-align: right; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .charts-grid { grid-template-columns: 1fr; }
+      .main { padding: 20px 16px; }
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="brand">📦 Проект-Инвест</div>
+      <div class="sub">Система управления логистикой</div>
+    </div>
+    <nav>
+      <div class="nav-item active">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm8 0A1.5 1.5 0 0 1 10.5 9h3A1.5 1.5 0 0 1 15 10.5v3A1.5 1.5 0 0 1 13.5 15h-3A1.5 1.5 0 0 1 9 13.5v-3z"/></svg>
+        Дашборд
+      </div>
+      <div class="nav-item" onclick="location.href='/admin'">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5H2a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-11a2 2 0 0 0-2-2h-3A1.5 1.5 0 0 0 9.5 0h-3z"/></svg>
+        Панель баз данных
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      Последнее обновление<br>{{ now }}
+      <a href="/admin">→ Открыть Admin Panel</a>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main">
+    <div class="page-header">
+      <div>
+        <h1>Панель руководителя</h1>
+        <p>Ключевые показатели системы в режиме реального времени</p>
+      </div>
+      <!-- Theme Toggle -->
+      <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Сменить тему">
+        <span id="themeIcon">☀️</span>
+        <span id="themeLabel">Светлая</span>
+        <div class="toggle-track"><div class="toggle-knob"></div></div>
+      </button>
+    </div>
+
+    <!-- KPI Grid -->
+    <div class="kpi-grid">
+      <div class="kpi-card blue">
+        <div class="kpi-label">Всего заявок</div>
+        <div class="kpi-value">{{ stats.orders.total }}</div>
+        <div class="kpi-sub">За всё время</div>
+      </div>
+      <div class="kpi-card yellow">
+        <div class="kpi-label">Ожидают</div>
+        <div class="kpi-value">{{ stats.orders.by_status.pending }}</div>
+        <span class="kpi-badge badge-yellow">Pending</span>
+      </div>
+      <div class="kpi-card orange">
+        <div class="kpi-label">В пути</div>
+        <div class="kpi-value">{{ stats.orders.by_status.inTransit }}</div>
+        <span class="kpi-badge badge-orange">In Transit</span>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">Доставлено</div>
+        <div class="kpi-value">{{ stats.orders.by_status.delivered }}</div>
+        <span class="kpi-badge badge-green">{{ stats.orders.delivery_rate }}% успех</span>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-label">Отменено</div>
+        <div class="kpi-value">{{ stats.orders.by_status.cancelled }}</div>
+        <span class="kpi-badge badge-red">Cancelled</span>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-label">Сотрудников</div>
+        <div class="kpi-value">{{ stats.users.total }}</div>
+        <div class="kpi-sub">Активных: {{ stats.users.active }}</div>
+      </div>
+      <div class="kpi-card teal">
+        <div class="kpi-label">Операторов</div>
+        <div class="kpi-value">{{ stats.users.operators }}</div>
+        <span class="kpi-badge badge-blue">Operator</span>
+      </div>
+      <div class="kpi-card pink">
+        <div class="kpi-label">Экспедиторов</div>
+        <div class="kpi-value">{{ stats.users.expeditors }}</div>
+        <span class="kpi-badge badge-orange">Expeditor</span>
+      </div>
+    </div>
+
+    <!-- Charts Row 1 -->
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h3>Заявки за 7 дней</h3>
+        <p>Количество новых заявок по дням</p>
+        <div class="chart-wrap"><canvas id="dailyChart" height="200"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Статусы заявок</h3>
+        <p>Распределение по текущему статусу</p>
+        <div style="display:flex; gap:20px; align-items:center;">
+          <div class="chart-wrap" style="width:180px; flex-shrink:0;"><canvas id="statusPie" height="180"></canvas></div>
+          <div class="status-list" style="flex:1;">
+            {% set status_map = [
+              ('pending',    'Ожидает',    '#d29922', stats.orders.by_status.pending),
+              ('accepted',   'Принята',    '#4f8ef7', stats.orders.by_status.accepted),
+              ('inTransit',  'В пути',     '#f78166', stats.orders.by_status.inTransit),
+              ('delivered',  'Доставлено', '#3fb950', stats.orders.by_status.delivered),
+              ('cancelled',  'Отменена',   '#f85149', stats.orders.by_status.cancelled),
+            ] %}
+            {% set total = stats.orders.total if stats.orders.total > 0 else 1 %}
+            {% for key, label, color, count in status_map %}
+            <div class="status-row">
+              <span class="status-dot" style="background:{{ color }}"></span>
+              <span class="status-name">{{ label }}</span>
+              <div class="status-bar-wrap"><div class="status-bar" style="width:{{ (count/total*100)|int }}%; background:{{ color }};"></div></div>
+              <span class="status-count">{{ count }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Row 2 -->
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h3>Сотрудники по складам</h3>
+        <p>Операторы и экспедиторы на каждом складе</p>
+        <div class="chart-wrap"><canvas id="warehouseChart" height="220"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Чат-активность</h3>
+        <p>Статистика переписки</p>
+        <div style="margin-top:12px;">
+          {% set chat_items = [
+            ('💬', 'Чат-комнаты',         stats.chat.rooms,          'badge-blue'),
+            ('📨', 'Всего сообщений',      stats.chat.messages,       'badge-blue'),
+            ('🔴', 'Непрочитанных',        stats.chat.unread,         'badge-red'  if stats.chat.unread    > 0 else 'badge-green'),
+            ('👥', 'Неактивных сотруд.',   stats.users.inactive,      'badge-red'  if stats.users.inactive > 0 else 'badge-green'),
+            ('🏭', 'Складов',              stats.warehouses.total,    'badge-blue'),
+          ] %}
+          {% for icon, label, value, badge in chat_items %}
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border);">
+            <span style="font-size:14px;">{{ icon }} <span style="font-size:13px; color:var(--muted); margin-left:6px;">{{ label }}</span></span>
+            <span class="kpi-badge {{ badge }}">{{ value }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Warehouse Table -->
+    <div class="table-card">
+      <h3>Склады — детализация</h3>
+      <p>Распределение персонала и активность</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Склад</th>
+            <th>Операторов</th>
+            <th>Экспедиторов</th>
+            <th>Итого</th>
+            <th>Нагрузка</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for i in range(stats.warehouses.labels|length) %}
+          {% set ops  = stats.warehouses.operators[i] %}
+          {% set exps = stats.warehouses.expeditors[i] %}
+          {% set total_staff = ops + exps %}
+          <tr>
+            <td><strong>{{ stats.warehouses.labels[i] }}</strong></td>
+            <td><span class="kpi-badge badge-blue">{{ ops }}</span></td>
+            <td><span class="kpi-badge badge-orange">{{ exps }}</span></td>
+            <td><strong>{{ total_staff }}</strong></td>
+            <td>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div style="flex:1; height:6px; background:var(--border); border-radius:4px; overflow:hidden;">
+                  <div style="height:100%; width:{{ [total_staff * 20, 100]|min }}%; background:linear-gradient(90deg,#4f8ef7,#a371f7); border-radius:4px;"></div>
+                </div>
+                <span style="font-size:11px; color:var(--muted);">{{ total_staff }} чел.</span>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+          {% if stats.warehouses.labels|length == 0 %}
+          <tr><td colspan="5" style="text-align:center; color:var(--muted); padding:24px;">Нет данных</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="page-footer">Проект-Инвест &copy; 2025 &mdash; Панель руководителя</div>
+  </main>
+</div>
+
+<script>
+  const STATS = {{ stats | tojson }};
+
+  // ── Theme ──────────────────────────────────────────────────────────────────
+  const html     = document.documentElement;
+  const themeKey = 'dashboard_theme';
+
+  function applyTheme(theme) {
+    html.setAttribute('data-theme', theme);
+    const isLight = theme === 'light';
+    document.getElementById('themeIcon').textContent  = isLight ? '🌙' : '☀️';
+    document.getElementById('themeLabel').textContent = isLight ? 'Тёмная' : 'Светлая';
+    localStorage.setItem(themeKey, theme);
+    updateChartColors();
+  }
+
+  function toggleTheme() {
+    const current = html.getAttribute('data-theme');
+    applyTheme(current === 'dark' ? 'light' : 'dark');
+  }
+
+  // Restore saved theme
+  const saved = localStorage.getItem(themeKey);
+  if (saved) applyTheme(saved);
+
+  // ── Chart color helpers ────────────────────────────────────────────────────
+  function getThemeColors() {
+    const dark = html.getAttribute('data-theme') === 'dark';
+    return {
+      grid:    dark ? 'rgba(48,54,61,0.6)'    : 'rgba(208,215,222,0.7)',
+      text:    dark ? '#8b949e'                : '#656d76',
+      pie:     dark ? '#161b22'                : '#ffffff',
+    };
+  }
+
+  const COLORS = {
+    pending:   '#d29922',
+    accepted:  '#4f8ef7',
+    inTransit: '#f78166',
+    delivered: '#3fb950',
+    cancelled: '#f85149',
+  };
+  const STATUS_LABELS = {
+    pending:   'Ожидает',
+    accepted:  'Принята',
+    inTransit: 'В пути',
+    delivered: 'Доставлено',
+    cancelled: 'Отменена',
+  };
+
+  Chart.defaults.font.family = 'Inter, sans-serif';
+  Chart.defaults.font.size   = 12;
+
+  // ── Build charts ───────────────────────────────────────────────────────────
+  let dailyChart, pieChart, warehouseChart;
+
+  function buildCharts() {
+    const tc = getThemeColors();
+    Chart.defaults.color = tc.text;
+
+    dailyChart = new Chart(document.getElementById('dailyChart'), {
+      type: 'bar',
+      data: {
+        labels: STATS.orders.daily_labels,
+        datasets: [{
+          label: 'Заявки',
+          data: STATS.orders.daily_counts,
+          backgroundColor: 'rgba(79,142,247,0.5)',
+          borderColor: '#4f8ef7',
+          borderWidth: 2, borderRadius: 6, borderSkipped: false,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: tc.grid }, ticks: { color: tc.text } },
+          y: { grid: { color: tc.grid }, ticks: { color: tc.text, stepSize: 1 }, beginAtZero: true }
+        }
+      }
+    });
+
+    const statusKeys = Object.keys(STATS.orders.by_status);
+    pieChart = new Chart(document.getElementById('statusPie'), {
+      type: 'doughnut',
+      data: {
+        labels: statusKeys.map(k => STATUS_LABELS[k] || k),
+        datasets: [{
+          data: statusKeys.map(k => STATS.orders.by_status[k]),
+          backgroundColor: statusKeys.map(k => COLORS[k] || '#8b949e'),
+          borderColor: tc.pie,
+          borderWidth: 3, hoverOffset: 8,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true, cutout: '65%',
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw}` } }
+        }
+      }
+    });
+
+    warehouseChart = new Chart(document.getElementById('warehouseChart'), {
+      type: 'bar',
+      data: {
+        labels: STATS.warehouses.labels,
+        datasets: [
+          {
+            label: 'Операторы',
+            data: STATS.warehouses.operators,
+            backgroundColor: 'rgba(79,142,247,0.7)', borderColor: '#4f8ef7',
+            borderWidth: 2, borderRadius: 5, borderSkipped: false,
+          },
+          {
+            label: 'Экспедиторы',
+            data: STATS.warehouses.expeditors,
+            backgroundColor: 'rgba(247,129,102,0.7)', borderColor: '#f78166',
+            borderWidth: 2, borderRadius: 5, borderSkipped: false,
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        plugins: {
+          legend: { labels: { color: tc.text, usePointStyle: true, pointStyle: 'circle', font: { size: 12 } } }
+        },
+        scales: {
+          x: { grid: { color: tc.grid }, ticks: { color: tc.text } },
+          y: { grid: { color: tc.grid }, ticks: { color: tc.text, stepSize: 1 }, beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  // ── Update chart colors on theme switch ────────────────────────────────────
+  function updateChartColors() {
+    if (!dailyChart) return;
+    const tc = getThemeColors();
+    Chart.defaults.color = tc.text;
+
+    [dailyChart, warehouseChart].forEach(chart => {
+      chart.options.scales.x.grid.color        = tc.grid;
+      chart.options.scales.x.ticks.color       = tc.text;
+      chart.options.scales.y.grid.color        = tc.grid;
+      chart.options.scales.y.ticks.color       = tc.text;
+      chart.update('none');
+    });
+
+    if (warehouseChart.options.plugins.legend)
+      warehouseChart.options.plugins.legend.labels.color = tc.text;
+    warehouseChart.update('none');
+
+    pieChart.data.datasets[0].borderColor = tc.pie;
+    pieChart.update('none');
+  }
+
+  buildCharts();
+</script>
+</body>
+</html>

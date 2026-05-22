@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:logistics_app/app/theme.dart';
 import 'package:logistics_app/core/models/order.dart';
 import 'package:logistics_app/core/models/user.dart';
+import 'package:logistics_app/core/services/geocoding_service.dart';
 import 'package:logistics_app/core/services/order_service.dart';
 import 'package:logistics_app/core/widgets/app_button.dart';
 import 'package:logistics_app/features/orders/widgets/section_label.dart';
@@ -68,19 +69,37 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   void _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
-    await Future.delayed(const Duration(milliseconds: 700));
+    final geocodedRoute = await GeocodingService.geocodeRoute(
+      fromAddress: _fromCtrl.text,
+      toAddress: _toCtrl.text,
+    );
+
+    if (geocodedRoute.from == null || geocodedRoute.to == null) {
+      if (mounted) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Не удалось определить один из адресов. Укажите адрес точнее.',
+            ),
+            backgroundColor: AppTheme.danger,
+          ),
+        );
+      }
+      return;
+    }
     final newOrder = Order(
       id: '',
       number:
           'ПИ-${DateTime.now().year}-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}',
       cargoName: _cargoCtrl.text,
       cargoWeight: _weightCtrl.text,
-      fromAddress: _fromCtrl.text,
-      toAddress: _toCtrl.text,
-      fromLat: 56.6596,
-      fromLng: 124.7154,
-      toLat: 56.6596,
-      toLng: 124.7154,
+      fromAddress: geocodedRoute.from!.formattedAddress,
+      toAddress: geocodedRoute.to!.formattedAddress,
+      fromLat: geocodedRoute.from!.point.latitude,
+      fromLng: geocodedRoute.from!.point.longitude,
+      toLat: geocodedRoute.to!.point.latitude,
+      toLng: geocodedRoute.to!.point.longitude,
       date: _date,
       status: OrderStatus.pending,
       operatorId: AuthState.currentUser!.id,
@@ -103,7 +122,8 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       if (mounted) {
         setState(() => _loading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка: $e'), backgroundColor: AppTheme.danger),
+          SnackBar(
+              content: Text('Ошибка: $e'), backgroundColor: AppTheme.danger),
         );
       }
     }
@@ -115,7 +135,8 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     final isDark = cs.brightness == Brightness.dark;
     final bgColor = isDark ? AppTheme.background : AppTheme.lBackground;
     final primaryText = isDark ? AppTheme.textPrimary : AppTheme.lTextPrimary;
-    final secondaryText = isDark ? AppTheme.textSecondary : AppTheme.lTextSecondary;
+    final secondaryText =
+        isDark ? AppTheme.textSecondary : AppTheme.lTextSecondary;
     final fillColor = isDark ? AppTheme.surfaceHigher : AppTheme.lSurfaceHigher;
     final borderColor = isDark ? AppTheme.cardBorder : AppTheme.lCardBorder;
 
@@ -171,8 +192,8 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
             GestureDetector(
               onTap: _pickDate,
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 14),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
                   color: fillColor,
                   borderRadius: BorderRadius.circular(12),

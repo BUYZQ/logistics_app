@@ -4,10 +4,12 @@
 """
 from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 from sqladmin import Admin
+import os
 
 from app.database import init_db, engine
-from app.routers import auth, employees, chat, orders
+from app.routers import auth, employees, chat, orders, dashboard
 from app.admin import UserAdmin, OTPCodeAdmin, WarehouseAdmin, admin_auth_backend
 
 app = FastAPI(
@@ -18,6 +20,13 @@ app = FastAPI(
 
 from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
+
+# SessionMiddleware нужен и для /admin (sqladmin) и для /dashboard
+# Оба должны использовать один и тот же secret_key чтобы сессия была общей
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=os.getenv("SECRET_KEY", "super_secret_admin_key"),
+)
 
 # Подключение админки с авторизацией
 admin = Admin(
@@ -74,3 +83,4 @@ app.include_router(employees.router)
 app.include_router(chat.router)
 app.include_router(orders.router)
 app.include_router(upload.router)
+app.include_router(dashboard.router)
