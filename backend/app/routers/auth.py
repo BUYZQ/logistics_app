@@ -18,7 +18,7 @@ from app.database import get_db
 from app.models import User, OTPCode
 from app.schemas import SendOTPRequest, VerifyOTPRequest, TokenResponse, UserOut
 from app.security import create_access_token, decode_token
-from app.services.sms_service import send_sms, is_phone
+from app.services.sms_service import send_sms_result, is_phone
 from app.services.email_service import send_otp_email
 
 logger = logging.getLogger(__name__)
@@ -88,8 +88,10 @@ async def send_otp(body: SendOTPRequest, db: Session = Depends(get_db)):
 
     # Отправляем
     message = f"Проект-Инвест: ваш код входа {code}. Действителен {OTP_TTL_MINUTES} минут."
+    sms_result = None
     if contact_type == "phone":
-        sent = await send_sms(contact, message)
+        sms_result = await send_sms_result(contact, message)
+        sent = sms_result.success
     else:
         sent = await send_otp_email(contact, code)
 
@@ -97,6 +99,11 @@ async def send_otp(body: SendOTPRequest, db: Session = Depends(get_db)):
         # Если не удалось отправить, удаляем код из БД
         db.delete(otp)
         db.commit()
+        if sms_result and sms_result.error:
+            raise HTTPException(
+                status_code=502,
+                detail=f"SMS.RU отклонил сообщение: {sms_result.error}",
+            )
         raise HTTPException(status_code=500, detail="Не удалось отправить код. Попробуйте позже.")
 
     return {

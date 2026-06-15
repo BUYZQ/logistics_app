@@ -3,10 +3,14 @@ import 'package:go_router/go_router.dart';
 import 'package:logistics_app/app/theme.dart';
 import 'package:logistics_app/core/models/order.dart';
 import 'package:logistics_app/core/models/user.dart';
-import 'package:logistics_app/core/services/geocoding_service.dart';
 import 'package:logistics_app/core/services/order_service.dart';
 import 'package:logistics_app/core/widgets/app_button.dart';
 import 'package:logistics_app/features/orders/widgets/section_label.dart';
+
+const double _defaultFromLat = 56.6530568;
+const double _defaultFromLng = 124.7345052;
+const double _defaultToLat = 56.66226440;
+const double _defaultToLng = 124.7082745;
 
 class CreateOrderScreen extends StatefulWidget {
   const CreateOrderScreen({super.key});
@@ -69,37 +73,19 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   void _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
-    final geocodedRoute = await GeocodingService.geocodeRoute(
-      fromAddress: _fromCtrl.text,
-      toAddress: _toCtrl.text,
-    );
 
-    if (geocodedRoute.from == null || geocodedRoute.to == null) {
-      if (mounted) {
-        setState(() => _loading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Не удалось определить один из адресов. Укажите адрес точнее.',
-            ),
-            backgroundColor: AppTheme.danger,
-          ),
-        );
-      }
-      return;
-    }
     final newOrder = Order(
       id: '',
       number:
           'ПИ-${DateTime.now().year}-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}',
       cargoName: _cargoCtrl.text,
       cargoWeight: _weightCtrl.text,
-      fromAddress: geocodedRoute.from!.formattedAddress,
-      toAddress: geocodedRoute.to!.formattedAddress,
-      fromLat: geocodedRoute.from!.point.latitude,
-      fromLng: geocodedRoute.from!.point.longitude,
-      toLat: geocodedRoute.to!.point.latitude,
-      toLng: geocodedRoute.to!.point.longitude,
+      fromAddress: _fromCtrl.text.trim(),
+      toAddress: _toCtrl.text.trim(),
+      fromLat: _defaultFromLat,
+      fromLng: _defaultFromLng,
+      toLat: _defaultToLat,
+      toLng: _defaultToLng,
       date: _date,
       status: OrderStatus.pending,
       operatorId: AuthState.currentUser!.id,
@@ -155,7 +141,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            SectionLabel('Маршрут'),
+            const SectionLabel('Маршрут'),
             const SizedBox(height: 10),
             AppFormField(
               controller: _fromCtrl,
@@ -171,7 +157,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
               validator: (v) => v!.isEmpty ? 'Введите адрес' : null,
             ),
             const SizedBox(height: 20),
-            SectionLabel('Груз'),
+            const SectionLabel('Груз'),
             const SizedBox(height: 10),
             AppFormField(
               controller: _cargoCtrl,
@@ -187,7 +173,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
               validator: (v) => v!.isEmpty ? 'Введите вес' : null,
             ),
             const SizedBox(height: 20),
-            SectionLabel('Дата'),
+            const SectionLabel('Дата'),
             const SizedBox(height: 10),
             GestureDetector(
               onTap: _pickDate,
@@ -215,7 +201,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            SectionLabel('Примечание'),
+            const SectionLabel('Примечание'),
             const SizedBox(height: 10),
             TextFormField(
               controller: _noteCtrl,

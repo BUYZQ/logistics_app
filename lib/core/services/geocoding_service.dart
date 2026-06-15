@@ -25,12 +25,16 @@ class GeocodedRoute {
 }
 
 class GeocodingService {
+  static const String _city = 'Нерюнгри';
+  static const String _region = 'Республика Саха (Якутия)';
+  static const String _country = 'Россия';
+
   static const Point defaultCenter =
       Point(latitude: 56.6596, longitude: 124.7154);
 
   static const BoundingBox _neryungriBounds = BoundingBox(
-    southWest: Point(latitude: 56.62, longitude: 124.66),
-    northEast: Point(latitude: 56.69, longitude: 124.75),
+    southWest: Point(latitude: 56.60, longitude: 124.62),
+    northEast: Point(latitude: 56.72, longitude: 124.80),
   );
 
   static const Map<String, Point> _knownAddressPoints = {
@@ -41,6 +45,9 @@ class GeocodingService {
     'проспект ленина 17': Point(latitude: 56.658928, longitude: 124.711894),
     'ленина 17/2': Point(latitude: 56.658928, longitude: 124.711894),
     'проспект ленина 17/2': Point(latitude: 56.658928, longitude: 124.711894),
+    'карла маркса 17': Point(latitude: 56.662707, longitude: 124.708412),
+    'улица карла маркса 17': Point(latitude: 56.662707, longitude: 124.708412),
+    'карла маркса улица 17': Point(latitude: 56.662707, longitude: 124.708412),
   };
 
   static Future<GeocodedRoute> geocodeRoute({
@@ -81,11 +88,19 @@ class GeocodingService {
 
   static List<String> _buildQueries(String address) {
     final lower = address.toLowerCase();
-    final queries = <String>[address];
+    final queries = <String>[];
+    final variants = _buildAddressVariants(address);
 
-    if (!_containsRegionHint(lower)) {
-      queries.add('$address, Нерюнгри');
-      queries.add('$address, Нерюнгри, Республика Саха (Якутия)');
+    for (final variant in variants) {
+      queries.add(variant);
+
+      if (!_containsRegionHint(lower)) {
+        queries.add('$variant, $_city');
+        queries.add('$_city, $variant');
+        queries.add('$variant, $_city, $_region');
+        queries.add('$_region, $_city, $variant');
+        queries.add('$variant, $_city, $_region, $_country');
+      }
     }
 
     return queries.toSet().toList();
@@ -105,7 +120,10 @@ class GeocodingService {
       return 'улица Амгинская, 6, Нерюнгри';
     }
     if (normalized.contains('ленина')) {
-      return 'проспект Ленина, 17, Нерюнгри';
+      return 'проспект Ленина, 17, $_city';
+    }
+    if (normalized.contains('карла маркса')) {
+      return 'улица Карла Маркса, 17, $_city';
     }
     return address.trim();
   }
@@ -118,10 +136,38 @@ class GeocodingService {
     normalized = normalized.replaceAll('проспект', '');
     normalized = normalized.replaceAll('пр-кт', '');
     normalized = normalized.replaceAll('пр.', '');
+    normalized = normalized.replaceAll('пр ', '');
     normalized = normalized.replaceAll('улица', '');
     normalized = normalized.replaceAll('ул', '');
+    normalized = normalized.replaceAll(RegExp(r'\bг\b'), '');
+    normalized = normalized.replaceAll(RegExp(r'\bд\b'), '');
+    normalized = normalized.replaceAll('дом', '');
+    normalized = normalized.replaceAll('нерюнгри', '');
+    normalized = normalized.replaceAll('республика саха якутия', '');
+    normalized = normalized.replaceAll('саха якутия', '');
+    normalized = normalized.replaceAll('якутия', '');
+    normalized = normalized.replaceAll('россия', '');
     normalized = normalized.replaceAll(RegExp(r'\s+'), ' ');
     return normalized.trim();
+  }
+
+  static List<String> _buildAddressVariants(String address) {
+    final compact = address.trim().replaceAll(RegExp(r'\s+'), ' ');
+    final expanded = compact
+        .replaceAll(RegExp(r'\bул\.?\s+', caseSensitive: false), 'улица ')
+        .replaceAll(RegExp(r'\bд\.?\s+', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    final withHouseComma = expanded.replaceFirst(
+      RegExp(r'\s+(\d+[а-яa-z]?(/\d+[а-яa-z]?)?)$', caseSensitive: false),
+      ', \$1',
+    );
+
+    return [
+      compact,
+      expanded,
+      withHouseComma,
+    ].where((value) => value.isNotEmpty).toSet().toList();
   }
 
   static bool _containsRegionHint(String address) {
@@ -163,6 +209,7 @@ class GeocodingService {
       for (final item in result.items ?? const <SearchItem>[]) {
         final meta = item.toponymMetadata;
         if (meta == null) continue;
+        if (!_isInsideNeryungri(meta.balloonPoint)) continue;
         return GeocodedAddress(
           query: query,
           formattedAddress: meta.address.formattedAddress,
@@ -180,5 +227,12 @@ class GeocodingService {
     }
 
     return null;
+  }
+
+  static bool _isInsideNeryungri(Point point) {
+    return point.latitude >= _neryungriBounds.southWest.latitude &&
+        point.latitude <= _neryungriBounds.northEast.latitude &&
+        point.longitude >= _neryungriBounds.southWest.longitude &&
+        point.longitude <= _neryungriBounds.northEast.longitude;
   }
 }

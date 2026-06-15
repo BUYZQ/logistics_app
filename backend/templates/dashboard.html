@@ -415,12 +415,13 @@
       </table>
     </div>
 
-    <div class="page-footer">Проект-Инвест &copy; 2025 &mdash; Панель руководителя</div>
+    <div class="page-footer">Проект-Инвест &copy; 2026 &mdash; Панель руководителя</div>
   </main>
 </div>
 
 <script>
   const STATS = {{ stats | tojson }};
+  let dailyChart, pieChart, warehouseChart;
 
   // ── Theme ──────────────────────────────────────────────────────────────────
   const html     = document.documentElement;
@@ -473,8 +474,6 @@
   Chart.defaults.font.size   = 12;
 
   // ── Build charts ───────────────────────────────────────────────────────────
-  let dailyChart, pieChart, warehouseChart;
-
   function buildCharts() {
     const tc = getThemeColors();
     Chart.defaults.color = tc.text;
